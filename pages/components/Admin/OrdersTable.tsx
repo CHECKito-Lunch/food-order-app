@@ -1,6 +1,7 @@
 // pages/components/Admin/OrdersTable.tsx
+
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '../../../lib/supabaseClient';
 
 interface OrderAdminRaw {
   id: number;
@@ -44,25 +45,24 @@ export default function OrdersTable() {
             iso_week
           )
         `);
+
       if (error) {
         console.error(error);
         return;
       }
 
+      // 'data' ist hier implizit any[] | null, wir casten es direkt auf unser Raw-Interface
       const raw = (data ?? []) as OrderAdminRaw[];
       const formatted: OrderAdmin[] = raw.map(r => ({
         id: r.id,
-        profile: {
-          first_name: r.profiles[0]?.first_name ?? '',
-          last_name: r.profiles[0]?.last_name ?? ''
-        },
+        profile: r.profiles[0] ?? { first_name: '', last_name: '' },
         week_menu: {
-          menu_number:    r.week_menus[0]?.menu_number    ?? 0,
-          description:    r.week_menus[0]?.description    ?? '',
+          menu_number: r.week_menus[0]?.menu_number ?? 0,
+          description: r.week_menus[0]?.description ?? '',
           order_deadline: r.week_menus[0]?.order_deadline ?? '',
-          caterer:        { name: r.week_menus[0]?.caterer[0]?.name ?? '' },
-          iso_week:       r.week_menus[0]?.iso_week       ?? 0
-        }
+          caterer: { name: r.week_menus[0]?.caterer[0]?.name ?? '' },
+          iso_week: r.week_menus[0]?.iso_week ?? 0,
+        },
       }));
 
       setOrders(formatted);
@@ -84,7 +84,8 @@ export default function OrdersTable() {
           </p>
           <p>Caterer: {o.week_menu.caterer.name}</p>
           <p>
-            Deadline: {new Date(o.week_menu.order_deadline).toLocaleString('de')}
+            Deadline:{' '}
+            {new Date(o.week_menu.order_deadline).toLocaleString('de')}
           </p>
         </div>
       ))}
