@@ -4,17 +4,25 @@ import { useRouter } from "next/router";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);   // Startet mit "lädt"
+  const [sessionSet, setSessionSet] = useState(false);
   const router = useRouter();
 
   // Access/Refresh-Token aus URL übernehmen und Session setzen!
   useEffect(() => {
     const { access_token, refresh_token, type } = router.query;
     if (type === "recovery" && access_token && refresh_token) {
-      supabase.auth.setSession({
-        access_token: access_token as string,
-        refresh_token: refresh_token as string,
-      });
+      supabase.auth
+        .setSession({
+          access_token: access_token as string,
+          refresh_token: refresh_token as string,
+        })
+        .then(() => {
+          setSessionSet(true);
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
     }
   }, [router.query]);
 
@@ -30,6 +38,8 @@ export default function ResetPassword() {
       router.push("/");
     }
   };
+
+  if (loading || !sessionSet) return <div>Lädt...</div>;
 
   return (
     <div className="max-w-md mx-auto py-10">
