@@ -20,12 +20,42 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+
+    // Login mit Supabase
     const { error } = await supabase.auth.signInWithPassword(form);
     setLoading(false);
+
     if (error) {
       alert(error.message);
     } else {
-      router.push('/');
+      // Nach erfolgreichem Login: User abfragen
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user) {
+        alert("Fehler beim Abrufen des Nutzers.");
+        return;
+      }
+
+      // Profildaten prüfen
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, location')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        // Falls noch kein Profileintrag existiert, leite zur Profilerfassung
+        router.push('/profile-setup');
+        return;
+      }
+
+      if (!profile?.first_name || !profile?.last_name || !profile?.location) {
+        // Profildaten unvollständig
+        router.push('/profile-setup');
+      } else {
+        // Profil vollständig, ab ins Dashboard
+        router.push('/');
+      }
     }
   };
 
