@@ -5,7 +5,11 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://food-order-app-theta-eight.vercel.app/reset-password"
+      // Für lokale Entwicklung zusätzlich:
+      // redirectTo: "http://localhost:3000/reset-password"
+    });
     if (error) return alert(error.message);
     alert('Email zum Zurücksetzen wurde gesendet.');
   };
