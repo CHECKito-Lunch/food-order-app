@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @next/next/no-html-link-for-pages */
-
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -60,5 +58,5 @@ export default function Login() {
         </Link>
       </p>
     </div>
-);
+  );
 }

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @next/next/no-html-link-for-pages */
-
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import dayjs from '../lib/dayjs';
