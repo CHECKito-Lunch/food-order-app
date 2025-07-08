@@ -9,8 +9,17 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-const eslintConfig = [
+export default [
+  // Basiskonfiguration von Next.js + TypeScript
   ...compat.extends("next/core-web-vitals", "next/typescript"),
-];
 
-export default eslintConfig;
+  // Hier überschreiben wir einzelne Regeln
+  {
+    rules: {
+      // erlaube überall `any`
+      "@typescript-eslint/no-explicit-any": "off",
+      // erlaube HTML-Links auch für Next.js-Pages
+      "@next/next/no-html-link-for-pages": "off",
+    },
+  },
+];
