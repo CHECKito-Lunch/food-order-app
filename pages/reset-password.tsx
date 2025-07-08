@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useRouter } from "next/router";
 
@@ -6,6 +6,17 @@ export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // Access/Refresh-Token aus URL übernehmen und Session setzen!
+  useEffect(() => {
+    const { access_token, refresh_token, type } = router.query;
+    if (type === "recovery" && access_token && refresh_token) {
+      supabase.auth.setSession({
+        access_token: access_token as string,
+        refresh_token: refresh_token as string,
+      });
+    }
+  }, [router.query]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
