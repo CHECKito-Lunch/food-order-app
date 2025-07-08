@@ -11,6 +11,7 @@ interface LoginForm {
 export default function Login() {
   const router = useRouter();
   const [form, setForm] = useState<LoginForm>({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -18,7 +19,9 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword(form);
+    setLoading(false);
     if (error) {
       alert(error.message);
     } else {
@@ -48,15 +51,18 @@ export default function Login() {
           className="w-full p-2 border"
           required
         />
-        <button type="submit" className="w-full bg-green-600 text-white p-2">
-          Einloggen
+        <button type="submit" className="w-full bg-green-600 text-white p-2" disabled={loading}>
+          {loading ? "Wird geprüft..." : "Einloggen"}
         </button>
       </form>
-      <p className="mt-4 text-right">
-        <Link href="/forgot-password" className="text-blue-600">
+      <div className="mt-4 flex justify-between">
+        <Link href="/register" className="text-blue-600 text-sm">
+          Noch kein Konto? Jetzt registrieren
+        </Link>
+        <Link href="/forgot-password" className="text-blue-600 text-sm">
           Passwort vergessen?
         </Link>
-      </p>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import dayjs from '../lib/dayjs';
+import Login from './login'; // Ggf. Pfad anpassen
 
 interface RawWeekMenu {
   id: number;
@@ -27,12 +28,24 @@ interface Order {
 export default function Dashboard() {
   const [menus, setMenus] = useState<WeekMenu[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const today   = dayjs();
   const isoYear = today.year();
   const isoWeek = today.week();
 
+  // --- AUTH CHECK ---
   useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+    });
+  }, []);
+
+  // Daten nur laden, wenn user vorhanden!
+  useEffect(() => {
+    if (!user) return;
     async function loadData() {
       const { data, error: menuErr } = await supabase
         .from('week_menus')
@@ -64,7 +77,7 @@ export default function Dashboard() {
     }
 
     loadData();
-  }, [isoYear, isoWeek]);
+  }, [user, isoYear, isoWeek]);
 
   const toggleOrder = async (menuId: number, deadline: string) => {
     if (dayjs(deadline).isBefore(dayjs())) {
@@ -83,9 +96,22 @@ export default function Dashboard() {
     if (!error) setOrders((fresh ?? []) as Order[]);
   };
 
+  // --- LOGIN/LOADING LOGIK ---
+  if (loading) return <div>Lädt...</div>;
+  if (!user) return <Login />;
+
   return (
     <div className="max-w-3xl mx-auto py-10">
-      <h1 className="text-2xl mb-6">Menü KW {isoWeek} / {isoYear}</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl">Menü KW {isoWeek} / {isoYear}</h1>
+        <button
+          className="bg-gray-200 text-sm px-3 py-1 rounded"
+          onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.reload();
+          }}
+        >Logout</button>
+      </div>
       <div className="grid gap-4">
         {menus.map(m => (
           <div key={m.id} className="p-4 border rounded flex justify-between items-center">
