@@ -1,23 +1,31 @@
 // pages/login.tsx
+
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
 
-interface LoginForm { email: string; password: string; }
+interface LoginForm {
+  email: string;
+  password: string;
+}
 
 export default function Login() {
   const router = useRouter();
   const [form, setForm] = useState<LoginForm>({ email: '', password: '' });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const { error } = await supabase.auth.signInWithPassword(form);
-    if (error) return alert(error.message);
-    router.push('/');
+    if (error) {
+      alert(error.message);
+    } else {
+      router.push('/');
+    }
   };
 
   return (
@@ -42,7 +50,10 @@ export default function Login() {
           className="w-full p-2 border"
           required
         />
-        <button type="submit" className="w-full bg-green-600 text-white p-2">
+        <button
+          type="submit"
+          className="w-full bg-green-600 text-white p-2"
+        >
           Einloggen
         </button>
       </form>
