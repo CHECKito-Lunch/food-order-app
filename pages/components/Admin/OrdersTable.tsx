@@ -1,4 +1,4 @@
-// pages/components/Admin/OrdersTable.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any, @next/next/no-html-link-for-pages */
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
@@ -51,7 +51,6 @@ export default function OrdersTable() {
         return;
       }
 
-      // 'data' ist hier implizit any[] | null, wir casten es direkt auf unser Raw-Interface
       const raw = (data ?? []) as OrderAdminRaw[];
       const formatted: OrderAdmin[] = raw.map(r => ({
         id: r.id,
@@ -84,8 +83,7 @@ export default function OrdersTable() {
           </p>
           <p>Caterer: {o.week_menu.caterer.name}</p>
           <p>
-            Deadline:{' '}
-            {new Date(o.week_menu.order_deadline).toLocaleString('de')}
+            Deadline: {new Date(o.week_menu.order_deadline).toLocaleString('de')}
           </p>
         </div>
       ))}

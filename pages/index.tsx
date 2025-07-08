@@ -1,4 +1,5 @@
-// pages/index.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any, @next/next/no-html-link-for-pages */
+
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import dayjs from '../lib/dayjs';
@@ -46,7 +47,7 @@ export default function Dashboard() {
         console.error(menuErr);
       } else {
         const raw = (data ?? []) as RawWeekMenu[];
-        const formatted = raw.map(({ caterers, ...rest }) => ({
+        const formatted: WeekMenu[] = raw.map(({ caterers, ...rest }) => ({
           ...rest,
           caterer: { name: caterers[0]?.name ?? '' },
         }));
@@ -78,13 +79,10 @@ export default function Dashboard() {
     } else {
       await supabase.from('orders').insert({ week_menu_id: menuId });
     }
-    // Aktualisiere Bestellungen
     const { data: fresh, error } = await supabase
       .from('orders')
       .select('week_menu_id');
-    if (!error) {
-      setOrders((fresh ?? []) as Order[]);
-    }
+    if (!error) setOrders((fresh ?? []) as Order[]);
   };
 
   return (

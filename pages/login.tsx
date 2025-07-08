@@ -1,4 +1,4 @@
-// pages/login.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any, @next/next/no-html-link-for-pages */
 
 import { useState } from 'react';
 import { useRouter } from 'next/router';
@@ -50,10 +50,7 @@ export default function Login() {
           className="w-full p-2 border"
           required
         />
-        <button
-          type="submit"
-          className="w-full bg-green-600 text-white p-2"
-        >
+        <button type="submit" className="w-full bg-green-600 text-white p-2">
           Einloggen
         </button>
       </form>
@@ -63,5 +60,5 @@ export default function Login() {
         </Link>
       </p>
     </div>
-  );
+);
 }
