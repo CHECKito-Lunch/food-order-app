@@ -4,13 +4,16 @@ import { useRouter } from "next/router";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(true);   // Startet mit "lädt"
-  const [sessionSet, setSessionSet] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
   const router = useRouter();
 
-  // Access/Refresh-Token aus URL übernehmen und Session setzen!
   useEffect(() => {
+    // Nur ausführen, wenn router.query initialisiert ist (Next.js Besonderheit)
+    if (!router.isReady) return;
+
     const { access_token, refresh_token, type } = router.query;
+
     if (type === "recovery" && access_token && refresh_token) {
       supabase.auth
         .setSession({
@@ -18,13 +21,19 @@ export default function ResetPassword() {
           refresh_token: refresh_token as string,
         })
         .then(() => {
-          setSessionSet(true);
+          setShowForm(true);
           setLoading(false);
         });
-    } else {
+    } else if (!access_token && !refresh_token) {
+      // Kein Token in URL → Seite trotzdem anzeigen, evtl. kommt User direkt
+      setShowForm(true);
       setLoading(false);
+    } else {
+      // Tokens sind unvollständig → Error oder Hinweis anzeigen
+      setLoading(false);
+      setShowForm(false);
     }
-  }, [router.query]);
+  }, [router.isReady, router.query]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +48,8 @@ export default function ResetPassword() {
     }
   };
 
-  if (loading || !sessionSet) return <div>Lädt...</div>;
+  if (loading) return <div>Lädt...</div>;
+  if (!showForm) return <div>Fehler: Kein gültiger Passwort-Reset-Link.</div>;
 
   return (
     <div className="max-w-md mx-auto py-10">
