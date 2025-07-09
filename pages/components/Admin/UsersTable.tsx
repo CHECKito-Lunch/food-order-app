@@ -21,31 +21,35 @@ export default function UsersTable() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // Userdaten laden: Profile und Emails via API!
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const { data: profiles, error } = await supabase.from("profiles").select("*");
-      const res = await fetch("/api/admin/list-users");
-      const { users: authList, error: error2 } = await res.json();
-      if (error || error2) {
-        alert("Fehler beim Laden: " + (error?.message || error2));
-        setLoading(false);
-        return;
-      }
-      const usersFull = profiles?.map(p => ({
-        ...p,
-        email: authList?.find((u: any) => u.id === p.id)?.email ?? "",
-      })) || [];
-      setUsers(usersFull);
+  // Userdaten laden
+  const fetchUsers = async () => {
+    setLoading(true);
+    const { data: profiles, error } = await supabase.from("profiles").select("*");
+    const res = await fetch("/api/admin/list-users");
+    const { users: authList, error: error2 } = await res.json();
+    if (error || error2) {
+      alert("Fehler beim Laden: " + (error?.message || error2));
       setLoading(false);
-    })();
-  }, []);
+      return;
+    }
+    const usersFull = profiles?.map(p => ({
+      ...p,
+      email: authList?.find((u: any) => u.id === p.id)?.email ?? "",
+    })) || [];
+    setUsers(usersFull);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchUsers(); }, []);
 
   // User bearbeiten
   function handleEdit(user: Profile) {
     setEditing(user);
-    setEditForm({ ...user, password: "" });
+    setEditForm({
+      ...user,
+      location: user.location || LOCATION_OPTIONS[0], // Defaultwert, falls leer
+      password: ""
+    });
   }
 
   // User speichern (API)
@@ -60,7 +64,7 @@ export default function UsersTable() {
         password: editForm.password || "",
         first_name: editForm.first_name || "",
         last_name: editForm.last_name || "",
-        location: editForm.location || "",
+        location: editForm.location || LOCATION_OPTIONS[0],
         role: editForm.role || "user"
       })
     });
@@ -68,7 +72,7 @@ export default function UsersTable() {
     if (!res.ok) return alert("Fehler: " + (result.error || "Unbekannter Fehler"));
     alert("User aktualisiert!");
     setEditing(null);
-    window.location.reload();
+    await fetchUsers();
   }
 
   // User löschen (API)
@@ -82,7 +86,7 @@ export default function UsersTable() {
     const result = await res.json();
     if (!res.ok) return alert("Fehler: " + (result.error || "Unbekannter Fehler"));
     alert("User gelöscht!");
-    window.location.reload();
+    await fetchUsers();
   }
 
   // Neuen User anlegen (API)
@@ -95,7 +99,7 @@ export default function UsersTable() {
         password: editForm.password || "",
         first_name: editForm.first_name || "",
         last_name: editForm.last_name || "",
-        location: editForm.location || "",
+        location: editForm.location || LOCATION_OPTIONS[0],
         role: editForm.role || "user"
       })
     });
@@ -106,7 +110,7 @@ export default function UsersTable() {
     }
     alert("User angelegt: " + result.user.email);
     setShowCreate(false);
-    window.location.reload();
+    await fetchUsers();
   }
 
   if (loading) return <div>Lädt...</div>;
@@ -176,13 +180,12 @@ export default function UsersTable() {
             <input value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="mb-2 w-full p-1 border" placeholder="E-Mail" />
             <input value={editForm.first_name} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Vorname" />
             <input value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Nachname" />
-            <select value={editForm.location || ""} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-1 border">
-              <option value="">Location wählen…</option>
+            <select value={editForm.location || LOCATION_OPTIONS[0]} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-1 border">
               {LOCATION_OPTIONS.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
-            <select value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="mb-2 w-full p-1 border">
+            <select value={editForm.role || "user"} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="mb-2 w-full p-1 border">
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
@@ -204,7 +207,6 @@ export default function UsersTable() {
             <input value={editForm.first_name || ""} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Vorname" />
             <input value={editForm.last_name || ""} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Nachname" />
             <select value={editForm.location || LOCATION_OPTIONS[0]} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-1 border">
-              <option value="">Location wählen…</option>
               {LOCATION_OPTIONS.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}

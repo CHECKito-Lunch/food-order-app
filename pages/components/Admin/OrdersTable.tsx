@@ -3,6 +3,7 @@ import { supabase } from "../../../lib/supabaseClient";
 
 interface OrderAdminRaw {
   id: number;
+  location: string;
   profiles: { first_name: string; last_name: string }[];
   week_menus: {
     menu_number: number;
@@ -16,6 +17,7 @@ interface OrderAdminRaw {
 
 interface OrderAdmin {
   id: number;
+  location: string;
   profile: { first_name: string; last_name: string };
   week_menu: {
     menu_number: number;
@@ -38,6 +40,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         .from('orders')
         .select(`
           id,
+          location,
           profiles(first_name, last_name),
           week_menus(
             menu_number,
@@ -58,9 +61,11 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         return;
       }
 
+      // Typisierung, auch falls Felder mal fehlen
       const raw = (data ?? []) as OrderAdminRaw[];
       const formatted: OrderAdmin[] = raw.map(r => ({
         id: r.id,
+        location: r.location ?? "",
         profile: r.profiles[0] ?? { first_name: '', last_name: '' },
         week_menu: {
           menu_number: r.week_menus[0]?.menu_number ?? 0,
@@ -79,12 +84,13 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
     fetchOrders();
   }, [isoYear, isoWeek]);
 
-  // CSV-Export
+  // CSV-Export (inkl. Location)
   function exportCSV() {
-    const header = ["Vorname", "Nachname", "KW", "Jahr", "Nr.", "Gericht", "Caterer", "Deadline"];
+    const header = ["Vorname", "Nachname", "Location", "KW", "Jahr", "Nr.", "Gericht", "Caterer", "Deadline"];
     const rows = orders.map(o => [
       o.profile.first_name,
       o.profile.last_name,
+      o.location,
       o.week_menu.iso_week,
       o.week_menu.iso_year,
       o.week_menu.menu_number,
@@ -121,6 +127,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
             <tr className="bg-gray-100">
               <th className="p-2 border">Vorname</th>
               <th className="p-2 border">Nachname</th>
+              <th className="p-2 border">Location</th>
               <th className="p-2 border">KW</th>
               <th className="p-2 border">Jahr</th>
               <th className="p-2 border">Nr.</th>
@@ -134,6 +141,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
               <tr key={o.id}>
                 <td className="border p-2">{o.profile.first_name}</td>
                 <td className="border p-2">{o.profile.last_name}</td>
+                <td className="border p-2">{o.location}</td>
                 <td className="border p-2">{o.week_menu.iso_week}</td>
                 <td className="border p-2">{o.week_menu.iso_year}</td>
                 <td className="border p-2">{o.week_menu.menu_number}</td>

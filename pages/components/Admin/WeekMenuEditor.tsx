@@ -48,22 +48,25 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   const [editPresetName, setEditPresetName] = useState('');
   const [confirm, setConfirm] = useState<{ action: string, payload?: any } | null>(null);
 
-  // Initiales Laden (alle Menüs nach Tag gruppiert)
-  useEffect(() => {
-    supabase
+  // --- Menü-Laden ausgelagert ---
+  const reloadMenus = async () => {
+    const { data: loaded } = await supabase
       .from('week_menus')
       .select('*')
       .eq('iso_year', isoYear)
-      .eq('iso_week', isoWeek)
-      .then(r => {
-        const loaded = r.data || [];
-        const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-        loaded.forEach((m: any) => {
-          grouped[m.day_of_week].push(m);
-        });
-        setMenus(grouped);
-        setUndoStack([]);
-      });
+      .eq('iso_week', isoWeek);
+
+    const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    (loaded || []).forEach((m: any) => {
+      grouped[m.day_of_week].push(m);
+    });
+    setMenus(grouped);
+    setUndoStack([]);
+  };
+
+  // Initiales Laden
+  useEffect(() => {
+    reloadMenus();
     supabase.from('week_menu_presets').select('*').then(r => {
       setPresets((r.data || []).map((p: any) => ({
         ...p,
@@ -131,13 +134,29 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     setCopiedDay(null);
   };
 
-  // Speichern/Upsert
+  // Speichern/Upsert (auf id! - siehe dein Tabellenschema)
   const handleSave = async () => {
     const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
-      arr.map(m => ({ ...m, day_of_week: Number(d), iso_year: isoYear, iso_week: isoWeek }))
+      arr.map(m => ({
+        ...m,
+        day_of_week: Number(d),
+        iso_year: isoYear,
+        iso_week: isoWeek,
+      }))
     );
-    await supabase.from('week_menus').upsert(allMenus);
+
+    // Upsert auf id (Auto-Increment Primary Key)
+    // Wenn id fehlt, wird INSERT gemacht, sonst UPDATE!
+    const { error } = await supabase
+      .from('week_menus')
+      .upsert(allMenus, { onConflict: 'id' });
+    if (error) {
+      alert('Fehler beim Speichern: ' + error.message);
+      return;
+    }
     alert('Woche gespeichert');
+    // Nach Speichern Menüs neu laden
+    reloadMenus();
   };
 
   // Preset speichern
