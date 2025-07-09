@@ -16,7 +16,15 @@ export default function Login() {
     if (error) {
       alert(error.message);
     } else {
-      router.push("/");
+      // Nach Login: Rolle holen
+      const { data: { user } } = await supabase.auth.getUser();
+      // Rolle steckt meist in user.user_metadata.role (kann aber auch woanders stehen)
+      const role = user?.user_metadata?.role || "user";
+      if (role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
     }
   };
 
@@ -46,7 +54,6 @@ export default function Login() {
           Einloggen
         </button>
       </form>
-      {/* Keine Register- oder Passwort-Vergessen-Links mehr */}
     </div>
   );
 }
