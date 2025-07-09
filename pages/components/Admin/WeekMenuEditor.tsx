@@ -8,7 +8,6 @@ const CATERER_OPTIONS = [
   { id: 3, name: 'Bloi' },
 ];
 
-// Die Lösung: Explizite number-Index-Signatur!
 const WEEKDAYS: Record<number, string> = {
   1: 'Montag',
   2: 'Dienstag',
@@ -19,26 +18,29 @@ const WEEKDAYS: Record<number, string> = {
 
 type Menu = {
   id?: number;
-  day_of_week: number;
   menu_number: number;
   description: string;
   caterer_id: number;
   order_deadline: string;
 };
 
+type MenuPerDay = {
+  [day: number]: Menu[];
+};
+
 type Preset = {
   id: number;
   name: string;
-  menus: Menu[];
+  menus: MenuPerDay;
 };
 
 export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; isoWeek: number }) {
-  const [menus, setMenus] = useState<Menu[]>([]);
-  const [undoStack, setUndoStack] = useState<Menu[][]>([]);
+  const [menus, setMenus] = useState<MenuPerDay>({ 1: [], 2: [], 3: [], 4: [], 5: [] });
+  const [undoStack, setUndoStack] = useState<MenuPerDay[]>([]);
   const [copiedDay, setCopiedDay] = useState<number | null>(null);
   const [pasteTarget, setPasteTarget] = useState<number>(1);
 
-  // Preset States
+  // Presets
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState('');
   const [selectedPresetId, setSelectedPresetId] = useState<number | null>(null);
@@ -46,7 +48,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   const [editPresetName, setEditPresetName] = useState('');
   const [confirm, setConfirm] = useState<{ action: string, payload?: any } | null>(null);
 
-  // Load menus & presets
+  // Initiales Laden (alle Menüs nach Tag gruppiert)
   useEffect(() => {
     supabase
       .from('week_menus')
@@ -54,90 +56,107 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       .eq('iso_year', isoYear)
       .eq('iso_week', isoWeek)
       .then(r => {
-        const loaded = (r.data as Menu[]) || [];
-        const fullMenus: Menu[] = [];
-        for (let day = 1; day <= 5; day++) {
-          const found = loaded.filter(m => m.day_of_week === day);
-          if (found.length) {
-            fullMenus.push(...found);
-          } else {
-            fullMenus.push({
-              day_of_week: day,
-              menu_number: 1,
-              description: '',
-              caterer_id: CATERER_OPTIONS[0].id,
-              order_deadline: dayjs().add(day - dayjs().day() + 1, "day").format('YYYY-MM-DDTHH:mm')
-            });
-          }
-        }
-        setMenus(fullMenus);
-        setUndoStack([]); // reset Undo bei neuem Laden
+        const loaded = r.data || [];
+        const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+        loaded.forEach((m: any) => {
+          grouped[m.day_of_week].push(m);
+        });
+        setMenus(grouped);
+        setUndoStack([]);
       });
     supabase.from('week_menu_presets').select('*').then(r => {
-      setPresets(r.data || []);
+      setPresets((r.data || []).map((p: any) => ({
+        ...p,
+        menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
+      })));
     });
   }, [isoYear, isoWeek]);
 
-  // --- Undo-Mechanik ---
   function pushUndo() {
-    setUndoStack(s => [...s.slice(-9), menus.map(m => ({ ...m }))]); // nur max 10
+    setUndoStack(s => [...s.slice(-9), JSON.parse(JSON.stringify(menus))]);
   }
   function handleUndo() {
-    if (undoStack.length === 0) return;
+    if (!undoStack.length) return;
     setMenus(undoStack[undoStack.length - 1]);
     setUndoStack(s => s.slice(0, -1));
   }
 
-  // --- Menü bearbeiten ---
-  const handleChange = (idx: number, changes: Partial<Menu>) => {
+  // Menü hinzufügen für Tag d
+  const handleAddMenu = (d: number) => {
     pushUndo();
-    setMenus(menus.map((m, i) => i === idx ? { ...m, ...changes } : m));
+    setMenus(prev => ({
+      ...prev,
+      [d]: [
+        ...prev[d],
+        {
+          menu_number: prev[d].length + 1,
+          description: '',
+          caterer_id: CATERER_OPTIONS[0].id,
+          order_deadline: dayjs().add(d - dayjs().day() + 1, "day").format('YYYY-MM-DDTHH:mm')
+        }
+      ]
+    }));
   };
 
-  // --- Menü hinzufügen/entfernen ---
-  const handleAdd = () => {
+  // Menü entfernen
+  const handleRemoveMenu = (d: number, idx: number) => {
     pushUndo();
-    const nextEmpty = [1,2,3,4,5].find(d => !menus.some(m => m.day_of_week === d && m.description));
-    setMenus([
-      ...menus,
-      {
-        day_of_week: nextEmpty || 1,
-        menu_number: 1,
-        description: '',
-        caterer_id: CATERER_OPTIONS[0].id,
-        order_deadline: dayjs().add((nextEmpty || 1) - dayjs().day() + 1, "day").format('YYYY-MM-DDTHH:mm')
-      }
-    ]);
-  };
-  const handleRemove = (idx: number) => {
-    pushUndo();
-    setMenus(menus.filter((_, i) => i !== idx));
+    setMenus(prev => ({
+      ...prev,
+      [d]: prev[d].filter((_, i) => i !== idx)
+    }));
   };
 
-  // --- Speichern ---
+  // Menü bearbeiten
+  const handleMenuChange = (d: number, idx: number, changes: Partial<Menu>) => {
+    pushUndo();
+    setMenus(prev => ({
+      ...prev,
+      [d]: prev[d].map((m, i) => i === idx ? { ...m, ...changes } : m)
+    }));
+  };
+
+  // Copy/Paste für Tages-Arrays
+  const handleCopyDay = (d: number) => { setCopiedDay(d); setPasteTarget(d); };
+  const handlePasteDay = () => {
+    if (!copiedDay) return;
+    pushUndo();
+    setMenus(prev => ({
+      ...prev,
+      [pasteTarget]: prev[copiedDay].map(m => ({
+        ...m,
+        order_deadline: dayjs().add(pasteTarget - dayjs().day() + 1, "day").format('YYYY-MM-DDTHH:mm')
+      }))
+    }));
+    setCopiedDay(null);
+  };
+
+  // Speichern/Upsert
   const handleSave = async () => {
-    await supabase.from('week_menus').upsert(
-      menus.map(m => ({ ...m, iso_year: isoYear, iso_week: isoWeek }))
+    const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
+      arr.map(m => ({ ...m, day_of_week: Number(d), iso_year: isoYear, iso_week: isoWeek }))
     );
+    await supabase.from('week_menus').upsert(allMenus);
     alert('Woche gespeichert');
   };
 
-  // --- Preset speichern ---
+  // Preset speichern
   const handleSavePreset = async () => {
     if (!presetName) return alert("Bitte Preset-Namen eingeben!");
-    const { error } = await supabase.from('week_menu_presets').insert({
-      name: presetName,
-      menus: menus.map(m => ({ ...m, id: undefined }))
-    });
+    const presetData = { name: presetName, menus: JSON.stringify(menus) };
+    const { error } = await supabase.from('week_menu_presets').insert(presetData);
     if (!error) {
       setPresetName('');
       alert("Preset gespeichert!");
       const { data } = await supabase.from('week_menu_presets').select('*');
-      setPresets(data || []);
+      setPresets((data || []).map((p: any) => ({
+        ...p,
+        menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
+      })));
     }
   };
 
-  // --- Preset laden (mit Bestätigung!) ---
+  // Preset laden (mit Bestätigung!)
   const handleTryLoadPreset = () => {
     if (!selectedPresetId) return;
     setConfirm({ action: "load-preset", payload: selectedPresetId });
@@ -147,16 +166,12 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     const preset = presets.find(p => p.id === selectedPresetId);
     if (preset) {
       pushUndo();
-      setMenus(preset.menus.map(m => ({
-        ...m,
-        id: undefined,
-        order_deadline: dayjs().add(m.day_of_week - dayjs().day() + 1, "day").format('YYYY-MM-DDTHH:mm')
-      })));
+      setMenus(JSON.parse(JSON.stringify(preset.menus)));
     }
     setConfirm(null);
   };
 
-  // --- Preset umbenennen ---
+  // Preset umbenennen
   const handleEditPresetName = (id: number, name: string) => {
     setEditPresetId(id);
     setEditPresetName(name);
@@ -167,38 +182,49 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     setEditPresetId(null);
     setEditPresetName('');
     const { data } = await supabase.from('week_menu_presets').select('*');
-    setPresets(data || []);
+    setPresets((data || []).map((p: any) => ({
+      ...p,
+      menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
+    })));
   };
 
-  // --- Preset löschen (mit Bestätigung) ---
+  // Preset löschen (mit Bestätigung)
   const handleTryDeletePreset = (id: number) => setConfirm({ action: "delete-preset", payload: id });
   const handleDeletePreset = async () => {
     if (!confirm?.payload) return;
     await supabase.from('week_menu_presets').delete().eq('id', confirm.payload);
     setConfirm(null);
     const { data } = await supabase.from('week_menu_presets').select('*');
-    setPresets(data || []);
+    setPresets((data || []).map((p: any) => ({
+      ...p,
+      menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
+    })));
   };
 
-  // --- Copy/Paste für Tage ---
-  const handleCopyDay = (day: number) => {
-    setCopiedDay(day);
-    setPasteTarget(day);
-  };
-  const handlePasteDay = () => {
-    if (!copiedDay) return;
-    pushUndo();
-    const copiedMenus = menus.filter(m => m.day_of_week === copiedDay);
-    let nextMenus = menus.filter(m => m.day_of_week !== pasteTarget);
-    const todayBase = dayjs().add(pasteTarget - dayjs().day() + 1, "day");
-    const pastedMenus = copiedMenus.map(m => ({
-      ...m,
-      id: undefined,
-      day_of_week: pasteTarget,
-      order_deadline: todayBase.format('YYYY-MM-DDTHH:mm')
-    }));
-    setMenus([...nextMenus, ...pastedMenus]);
-    setCopiedDay(null);
+  // Export als CSV
+  const exportCSV = () => {
+    const csvRows: string[] = [
+      "Tag,Menü-Nr.,Bezeichnung,Caterer,Deadline"
+    ];
+    Object.entries(WEEKDAYS).forEach(([d, dayName]) => {
+      (menus[Number(d)] || []).forEach(m => {
+        const caterer = CATERER_OPTIONS.find(c => c.id === m.caterer_id)?.name || '';
+        csvRows.push([
+          dayName,
+          m.menu_number,
+          m.description.replace(/"/g, "'"),
+          caterer,
+          m.order_deadline
+        ].map(val => `"${val}"`).join(","));
+      });
+    });
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `essensplan_kw${isoWeek}_${isoYear}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // --- Confirm Modal ---
@@ -226,10 +252,8 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <h2 className="text-xl font-bold mb-2">Menü KW {isoWeek}/{isoYear}</h2>
-      
-      {/* Presets */}
       <div className="flex gap-2 mb-2 flex-wrap">
         <input value={presetName} onChange={e => setPresetName(e.target.value)} placeholder="Preset-Name" className="border p-1"/>
         <button onClick={handleSavePreset} className="bg-blue-600 text-white px-3 py-1 rounded">Preset speichern</button>
@@ -239,6 +263,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
         </select>
         <button onClick={handleTryLoadPreset} className="bg-green-600 text-white px-3 py-1 rounded">Preset laden</button>
         <button onClick={handleUndo} disabled={undoStack.length === 0} className="bg-yellow-400 text-black px-3 py-1 rounded ml-4 disabled:bg-yellow-200">Undo</button>
+        <button onClick={exportCSV} className="bg-orange-600 text-white px-3 py-1 rounded ml-2">Export als CSV</button>
       </div>
       {/* Preset-Liste für Edit/Löschen */}
       <div className="mb-2">
@@ -260,110 +285,52 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
           </div>
         ))}
       </div>
-      
-      {/* Copy/Paste UI */}
-      {copiedDay && (
-        <div className="p-2 bg-yellow-100 rounded flex items-center gap-4">
-          <span>Tag <b>{WEEKDAYS[copiedDay] || ''}</b> kopiert.</span>
-          <span>Einfügen bei:
-            <select
-              value={pasteTarget}
-              onChange={e => setPasteTarget(Number(e.target.value))}
-              className="mx-2 border p-1"
-            >
-              {[1, 2, 3, 4, 5].map(d => (
-                <option key={d} value={d}>{WEEKDAYS[d]}</option>
-              ))}
-            </select>
-            <button
-              onClick={handlePasteDay}
-              className="bg-green-600 text-white rounded px-3 py-1 mx-2"
-            >Einfügen</button>
-            <button onClick={() => setCopiedDay(null)} className="text-red-600 underline">Abbrechen</button>
-          </span>
-        </div>
-      )}
-
-      <table className="min-w-full border">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="p-2 border">Tag</th>
-            <th className="p-2 border">Nr.</th>
-            <th className="p-2 border">Bezeichnung</th>
-            <th className="p-2 border">Caterer</th>
-            <th className="p-2 border">Deadline</th>
-            <th className="p-2 border"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {menus.map((m, i) => (
-            <tr key={i}>
-              <td className="border p-1 flex items-center gap-1">
-                <select
-                  value={m.day_of_week}
-                  onChange={e => handleChange(i, { day_of_week: Number(e.target.value) })}
-                  className="border p-1"
-                >
-                  {[1, 2, 3, 4, 5].map(d => (
-                    <option key={d} value={d}>{WEEKDAYS[d]}</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="ml-2 px-2 text-sm bg-gray-200 rounded"
-                  onClick={() => handleCopyDay(m.day_of_week)}
-                  title="Tag kopieren"
-                >
-                  Kopieren
-                </button>
-              </td>
-              <td className="border p-1">
-                <input
-                  type="number"
-                  value={m.menu_number}
-                  onChange={e => handleChange(i, { menu_number: Number(e.target.value) })}
-                  className="border p-1 w-16"
-                />
-              </td>
-              <td className="border p-1">
-                <input
-                  type="text"
-                  placeholder="Bezeichnung"
-                  value={m.description}
-                  onChange={e => handleChange(i, { description: e.target.value })}
-                  className="border p-1 w-40"
-                />
-              </td>
-              <td className="border p-1">
-                <select
-                  value={m.caterer_id}
-                  onChange={e => handleChange(i, { caterer_id: Number(e.target.value) })}
-                  className="border p-1"
-                >
-                  {CATERER_OPTIONS.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </td>
-              <td className="border p-1">
-                <input
-                  type="datetime-local"
-                  value={m.order_deadline}
-                  onChange={e => handleChange(i, { order_deadline: e.target.value })}
-                  className="border p-1"
-                />
-              </td>
-              <td className="border p-1">
-                <button
-                  onClick={() => handleRemove(i)}
-                  className="bg-red-500 text-white rounded px-2 py-1"
-                  title="Entfernen"
-                >✕</button>
-              </td>
-            </tr>
+      {Object.entries(WEEKDAYS).map(([d, name]) => (
+        <div key={d} className="mb-4 border rounded p-3 bg-gray-50">
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-semibold">{name}</div>
+            <div>
+              <button onClick={() => handleAddMenu(Number(d))} className="px-2 bg-blue-500 text-white rounded mr-2">+ Menü</button>
+              <button onClick={() => handleCopyDay(Number(d))} className="px-2 bg-yellow-400 text-black rounded mr-2">Kopieren</button>
+              {copiedDay && (
+                <>
+                  <select
+                    value={pasteTarget}
+                    onChange={e => setPasteTarget(Number(e.target.value))}
+                    className="border p-1 mx-2"
+                  >
+                    {[1,2,3,4,5].map(dd => <option key={dd} value={dd}>{WEEKDAYS[dd]}</option>)}
+                  </select>
+                  <button onClick={handlePasteDay} className="bg-green-600 text-white rounded px-2">Einfügen</button>
+                  <button onClick={() => setCopiedDay(null)} className="text-red-600 ml-2">Abbruch</button>
+                </>
+              )}
+            </div>
+          </div>
+          {menus[Number(d)].length === 0 && (
+            <div className="text-gray-500 text-sm">Noch kein Menü für {name}.</div>
+          )}
+          {menus[Number(d)].map((m, i) => (
+            <div key={i} className="flex gap-2 mb-2">
+              <input type="number" value={m.menu_number}
+                onChange={e => handleMenuChange(Number(d), i, { menu_number: Number(e.target.value) })}
+                className="border p-1 w-16" />
+              <input type="text" value={m.description}
+                onChange={e => handleMenuChange(Number(d), i, { description: e.target.value })}
+                className="border p-1 w-48" placeholder="Bezeichnung" />
+              <select value={m.caterer_id}
+                onChange={e => handleMenuChange(Number(d), i, { caterer_id: Number(e.target.value) })}
+                className="border p-1">
+                {CATERER_OPTIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <input type="datetime-local" value={m.order_deadline}
+                onChange={e => handleMenuChange(Number(d), i, { order_deadline: e.target.value })}
+                className="border p-1" />
+              <button onClick={() => handleRemoveMenu(Number(d), i)} className="bg-red-500 text-white rounded px-2">Entfernen</button>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      ))}
       <button onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded">Speichern</button>
       <ConfirmModal />
     </div>
