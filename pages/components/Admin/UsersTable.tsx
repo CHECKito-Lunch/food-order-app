@@ -23,6 +23,7 @@ export default function UsersTable() {
     (async () => {
       setLoading(true);
       const { data: profiles, error: err1 } = await supabase.from("profiles").select("*");
+      // Hole alle User aus Auth
       const { data: authList, error: err2 } = await supabase.auth.admin.listUsers();
       if (err1 || err2) {
         alert("Fehler beim Laden: " + (err1?.message || err2?.message));
@@ -68,30 +69,26 @@ export default function UsersTable() {
     window.location.reload();
   }
 
-  // Neuen User anlegen
+  // Neuen User anlegen (sicher über API-Route)
   async function handleCreate() {
-    // Auth-User anlegen
-    const { data, error } = await supabase.auth.admin.createUser({
-      email: editForm.email!,
-      password: editForm.password!,
-      email_confirm: true,
-      user_metadata: { role: editForm.role || "user" }
+    const res = await fetch("/api/admin/create-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: editForm.email,
+        password: editForm.password,
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        location: editForm.location,
+        role: editForm.role
+      })
     });
-    if (error) {
-      alert("Fehler: " + error.message);
+    const result = await res.json();
+    if (!res.ok) {
+      alert("Fehler: " + (result.error || "Unbekannter Fehler"));
       return;
     }
-
-    // Profile-Eintrag anlegen (nur falls noch nicht vorhanden)
-    await supabase.from("profiles").insert({
-      id: data.user?.id,
-      first_name: editForm.first_name,
-      last_name: editForm.last_name,
-      location: editForm.location,
-      role: editForm.role
-    });
-
-    alert("User angelegt!");
+    alert("User angelegt: " + result.user.email);
     setShowCreate(false);
     window.location.reload();
   }
