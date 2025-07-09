@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 
-// Profile Typisierung
 type Profile = {
   id: string;
   email: string;
@@ -17,22 +16,23 @@ export default function UsersTable() {
   const [editForm, setEditForm] = useState<Partial<Profile> & { password?: string }>({});
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
-  // Userdaten laden
+  // Userdaten laden: Profile und Emails via API!
   useEffect(() => {
     (async () => {
       setLoading(true);
-      // Profiles + Auth-Mail
-      const { data: profiles, error: err1 } = await supabase.from("profiles").select("*");
-      const { data: authList, error: err2 } = await supabase.auth.admin.listUsers();
-      if (err1 || err2) {
-        alert("Fehler beim Laden: " + (err1?.message || err2?.message));
+      const { data: profiles, error } = await supabase.from("profiles").select("*");
+      const res = await fetch("/api/admin/list-users");
+      const { users: authList, error: error2 } = await res.json();
+      if (error || error2) {
+        alert("Fehler beim Laden: " + (error?.message || error2));
         setLoading(false);
         return;
       }
       const usersFull = profiles?.map(p => ({
         ...p,
-        email: authList?.users.find(u => u.id === p.id)?.email ?? "",
+        email: authList?.find((u: any) => u.id === p.id)?.email ?? "",
       })) || [];
       setUsers(usersFull);
       setLoading(false);
@@ -108,10 +108,30 @@ export default function UsersTable() {
 
   if (loading) return <div>Lädt...</div>;
 
+  // Filter users nach Suchtext
+  const filtered = users.filter(u =>
+    (u.email?.toLowerCase().includes(search.toLowerCase()) ||
+     u.first_name?.toLowerCase().includes(search.toLowerCase()) ||
+     u.last_name?.toLowerCase().includes(search.toLowerCase()) ||
+     u.location?.toLowerCase().includes(search.toLowerCase()) ||
+     u.role?.toLowerCase().includes(search.toLowerCase()))
+  );
+
   return (
     <div>
       <h2 className="text-xl font-bold mb-2">Userverwaltung</h2>
-      <button onClick={() => { setEditForm({}); setShowCreate(true); }} className="mb-2 bg-blue-600 text-white px-3 py-1 rounded">Neuen User anlegen</button>
+      <div className="flex gap-4 mb-2">
+        <button onClick={() => { setEditForm({}); setShowCreate(true); }} className="bg-blue-600 text-white px-3 py-1 rounded">
+          Neuen User anlegen
+        </button>
+        <input
+          type="text"
+          placeholder="Suche nach Name, Email, Rolle..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="border p-2 rounded flex-1 min-w-[200px]"
+        />
+      </div>
       <table className="min-w-full border">
         <thead>
           <tr>
@@ -124,7 +144,7 @@ export default function UsersTable() {
           </tr>
         </thead>
         <tbody>
-          {users.map(u => (
+          {filtered.map(u => (
             <tr key={u.id}>
               <td className="border p-2">{u.email}</td>
               <td className="border p-2">{u.first_name}</td>
@@ -137,6 +157,11 @@ export default function UsersTable() {
               </td>
             </tr>
           ))}
+          {filtered.length === 0 && (
+            <tr>
+              <td colSpan={6} className="p-4 text-gray-400 text-center">Keine passenden User gefunden.</td>
+            </tr>
+          )}
         </tbody>
       </table>
 
