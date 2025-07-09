@@ -18,12 +18,12 @@ export default function UsersTable() {
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Lade alle User-Profile + Emails aus Auth
+  // Userdaten laden
   useEffect(() => {
     (async () => {
       setLoading(true);
+      // Profiles + Auth-Mail
       const { data: profiles, error: err1 } = await supabase.from("profiles").select("*");
-      // Hole alle User aus Auth
       const { data: authList, error: err2 } = await supabase.auth.admin.listUsers();
       if (err1 || err2) {
         alert("Fehler beim Laden: " + (err1?.message || err2?.message));
@@ -45,31 +45,44 @@ export default function UsersTable() {
     setEditForm({ ...user, password: "" });
   }
 
-  // User speichern (Profil und ggf. Auth/Passwort)
+  // User speichern (API)
   async function handleSave() {
     if (!editing) return;
-    // Profile updaten
-    await supabase.from("profiles").update({
-      first_name: editForm.first_name,
-      last_name: editForm.last_name,
-      location: editForm.location,
-      role: editForm.role
-    }).eq("id", editing.id);
-
-    // Auth-Daten updaten (nur wenn geändert)
-    if (editForm.email || editForm.password) {
-      const updateObj: any = { user_metadata: { role: editForm.role } };
-      if (editForm.email) updateObj.email = editForm.email;
-      if (editForm.password) updateObj.password = editForm.password;
-      await supabase.auth.admin.updateUserById(editing.id, updateObj);
-    }
-
+    const res = await fetch("/api/admin/update-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: editing.id,
+        email: editForm.email,
+        password: editForm.password,
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        location: editForm.location,
+        role: editForm.role
+      })
+    });
+    const result = await res.json();
+    if (!res.ok) return alert("Fehler: " + (result.error || "Unbekannter Fehler"));
     alert("User aktualisiert!");
     setEditing(null);
     window.location.reload();
   }
 
-  // Neuen User anlegen (sicher über API-Route)
+  // User löschen (API)
+  async function handleDelete(user: Profile) {
+    if (!window.confirm("Wirklich löschen?")) return;
+    const res = await fetch("/api/admin/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: user.id })
+    });
+    const result = await res.json();
+    if (!res.ok) return alert("Fehler: " + (result.error || "Unbekannter Fehler"));
+    alert("User gelöscht!");
+    window.location.reload();
+  }
+
+  // Neuen User anlegen (API)
   async function handleCreate() {
     const res = await fetch("/api/admin/create-user", {
       method: "POST",
@@ -118,8 +131,9 @@ export default function UsersTable() {
               <td className="border p-2">{u.last_name}</td>
               <td className="border p-2">{u.location}</td>
               <td className="border p-2">{u.role}</td>
-              <td className="border p-2">
+              <td className="border p-2 flex gap-2">
                 <button onClick={() => handleEdit(u)} className="text-blue-600 underline">Bearbeiten</button>
+                <button onClick={() => handleDelete(u)} className="text-red-600 underline">Löschen</button>
               </td>
             </tr>
           ))}
