@@ -1,5 +1,3 @@
-// pages/admin/index.tsx
-
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useRouter } from 'next/router';
@@ -14,20 +12,14 @@ export default function Admin() {
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
+    supabase.auth.getSession().then(({ data }) => {
       const sessionUser = data.session?.user ?? null;
       if (!sessionUser) {
         router.push('/login');
         return;
       }
-      // Rolle prüfen
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', sessionUser.id)
-        .single();
-
-      if (profile?.role !== 'admin') {
+      // NEU: Adminrolle im Metadata prüfen!
+      if (sessionUser.user_metadata?.role !== 'admin') {
         alert('Kein Admin-Zugang!');
         router.push('/');
         return;
@@ -47,14 +39,8 @@ export default function Admin() {
   return (
     <div className="max-w-4xl mx-auto py-10 space-y-10">
       <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-
-      {/* User Management */}
       <UsersTable />
-
-      {/* Wochen-Menü Editor */}
       <WeekMenuEditor isoYear={isoYear} isoWeek={isoWeek} />
-
-      {/* Bestell-Übersicht */}
       <OrdersTable />
     </div>
   );
