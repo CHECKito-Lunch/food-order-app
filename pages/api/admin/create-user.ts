@@ -12,6 +12,7 @@ const supabase = createClient(
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
+  // Werte aus Request holen, Default = ""
   const { email, password, role, first_name = "", last_name = "", location = "" } = req.body;
   if (!email || !password) return res.status(400).json({ error: "Missing fields" });
 
@@ -27,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const userId = data.user?.id;
   if (!userId) return res.status(400).json({ error: "No user id returned" });
 
-  // Prüfe ob Profil schon existiert:
+  // Prüfe, ob Profil schon existiert:
   const { data: existing, error: checkErr } = await supabase
     .from("profiles")
     .select("id")
@@ -39,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (!existing) {
-    // Profil anlegen (nur falls noch nicht da)
+    // Profil anlegen (nur falls noch nicht vorhanden)
     const { error: insertErr } = await supabase.from("profiles").insert({
       id: userId,
       first_name,

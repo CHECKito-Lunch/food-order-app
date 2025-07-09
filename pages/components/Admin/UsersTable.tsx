@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 
+// Profile Typisierung
 type Profile = {
   id: string;
   email: string;
@@ -9,6 +10,8 @@ type Profile = {
   location: string;
   role: string;
 };
+
+const LOCATION_OPTIONS = ["Nordpol", "Südpol"];
 
 export default function UsersTable() {
   const [users, setUsers] = useState<Profile[]>([]);
@@ -53,12 +56,12 @@ export default function UsersTable() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: editing.id,
-        email: editForm.email,
-        password: editForm.password,
-        first_name: editForm.first_name,
-        last_name: editForm.last_name,
-        location: editForm.location,
-        role: editForm.role
+        email: editForm.email || "",
+        password: editForm.password || "",
+        first_name: editForm.first_name || "",
+        last_name: editForm.last_name || "",
+        location: editForm.location || "",
+        role: editForm.role || "user"
       })
     });
     const result = await res.json();
@@ -88,12 +91,12 @@ export default function UsersTable() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: editForm.email,
-        password: editForm.password,
-        first_name: editForm.first_name,
-        last_name: editForm.last_name,
-        location: editForm.location,
-        role: editForm.role
+        email: editForm.email || "",
+        password: editForm.password || "",
+        first_name: editForm.first_name || "",
+        last_name: editForm.last_name || "",
+        location: editForm.location || "",
+        role: editForm.role || "user"
       })
     });
     const result = await res.json();
@@ -121,7 +124,7 @@ export default function UsersTable() {
     <div>
       <h2 className="text-xl font-bold mb-2">Userverwaltung</h2>
       <div className="flex gap-4 mb-2">
-        <button onClick={() => { setEditForm({}); setShowCreate(true); }} className="bg-blue-600 text-white px-3 py-1 rounded">
+        <button onClick={() => { setEditForm({ location: LOCATION_OPTIONS[0] }); setShowCreate(true); }} className="bg-blue-600 text-white px-3 py-1 rounded">
           Neuen User anlegen
         </button>
         <input
@@ -173,7 +176,12 @@ export default function UsersTable() {
             <input value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="mb-2 w-full p-1 border" placeholder="E-Mail" />
             <input value={editForm.first_name} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Vorname" />
             <input value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Nachname" />
-            <input value={editForm.location} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Location" />
+            <select value={editForm.location || ""} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-1 border">
+              <option value="">Location wählen…</option>
+              {LOCATION_OPTIONS.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
             <select value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="mb-2 w-full p-1 border">
               <option value="user">User</option>
               <option value="admin">Admin</option>
@@ -195,7 +203,12 @@ export default function UsersTable() {
             <input value={editForm.email || ""} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="mb-2 w-full p-1 border" placeholder="E-Mail" />
             <input value={editForm.first_name || ""} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Vorname" />
             <input value={editForm.last_name || ""} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Nachname" />
-            <input value={editForm.location || ""} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Location" />
+            <select value={editForm.location || LOCATION_OPTIONS[0]} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-1 border">
+              <option value="">Location wählen…</option>
+              {LOCATION_OPTIONS.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
             <select value={editForm.role || "user"} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="mb-2 w-full p-1 border">
               <option value="user">User</option>
               <option value="admin">Admin</option>
