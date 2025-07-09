@@ -38,6 +38,10 @@ interface Profile {
 }
 
 export default function Dashboard() {
+  const today = dayjs();
+  const [selectedYear, setSelectedYear] = useState(today.year());
+  const [selectedWeek, setSelectedWeek] = useState(today.week());
+
   const [menus, setMenus] = useState<WeekMenu[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -45,10 +49,6 @@ export default function Dashboard() {
   const [profileEdit, setProfileEdit] = useState<Partial<Profile>>({});
   const [editingProfile, setEditingProfile] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const today = dayjs();
-  const isoYear = today.year();
-  const isoWeek = today.week();
 
   // Auth
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function Dashboard() {
     });
   }, []);
 
-  // Daten laden
+  // Daten laden (bei user/kw/jahr)
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -66,8 +66,8 @@ export default function Dashboard() {
       const { data: menuData } = await supabase
         .from('week_menus')
         .select('id, day_of_week, menu_number, description, order_deadline, caterers(name)')
-        .eq('iso_year', isoYear)
-        .eq('iso_week', isoWeek)
+        .eq('iso_year', selectedYear)
+        .eq('iso_week', selectedWeek)
         .order('day_of_week');
 
       const rawMenus = (menuData ?? []) as RawWeekMenu[];
@@ -95,7 +95,7 @@ export default function Dashboard() {
       setProfile(profileData);
       setProfileEdit(profileData);
     })();
-  }, [user, isoYear, isoWeek]);
+  }, [user, selectedYear, selectedWeek]);
 
   // Menü-Auswahl: pro Tag ein Menü auswählbar
   const getOrderForDay = (day: number) => {
@@ -150,10 +150,42 @@ export default function Dashboard() {
   if (loading) return <div>Lädt...</div>;
   if (!user) return <Login />;
 
+  // Kalenderwochen-Auswahl erzeugen (aktuell ±10 Jahre, KW 1-53)
+  const yearOptions = Array.from({ length: 10 }, (_, i) => today.year() - 5 + i);
+  const weekOptions = Array.from({ length: 53 }, (_, i) => i + 1);
+
   return (
     <div className="max-w-3xl mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl">Menü KW {isoWeek} / {isoYear}</h1>
+        <div>
+          <h1 className="text-2xl">Menü-Bestellung</h1>
+          <div className="flex gap-4 mt-2 items-center">
+            <label>
+              Jahr:
+              <select
+                className="ml-1 border rounded px-2 py-1"
+                value={selectedYear}
+                onChange={e => setSelectedYear(Number(e.target.value))}
+              >
+                {yearOptions.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Kalenderwoche:
+              <select
+                className="ml-1 border rounded px-2 py-1"
+                value={selectedWeek}
+                onChange={e => setSelectedWeek(Number(e.target.value))}
+              >
+                {weekOptions.map(w => (
+                  <option key={w} value={w}>{w}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
         <button
           className="bg-gray-200 text-sm px-3 py-1 rounded"
           onClick={async () => {
