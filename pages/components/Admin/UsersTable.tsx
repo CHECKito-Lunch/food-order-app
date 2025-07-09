@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 
+// Profile Typisierung
 type Profile = {
   id: string;
   email: string;
@@ -15,18 +16,25 @@ export default function UsersTable() {
   const [editing, setEditing] = useState<null | Profile>(null);
   const [editForm, setEditForm] = useState<Partial<Profile> & { password?: string }>({});
   const [showCreate, setShowCreate] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Laden aller User & Profile
+  // Lade alle User-Profile + Emails aus Auth
   useEffect(() => {
     (async () => {
-      const { data: profiles } = await supabase.from("profiles").select("*");
-      // Hole alle User aus Auth
-      const { data: authList } = await supabase.auth.admin.listUsers();
+      setLoading(true);
+      const { data: profiles, error: err1 } = await supabase.from("profiles").select("*");
+      const { data: authList, error: err2 } = await supabase.auth.admin.listUsers();
+      if (err1 || err2) {
+        alert("Fehler beim Laden: " + (err1?.message || err2?.message));
+        setLoading(false);
+        return;
+      }
       const usersFull = profiles?.map(p => ({
         ...p,
         email: authList?.users.find(u => u.id === p.id)?.email ?? "",
       })) || [];
       setUsers(usersFull);
+      setLoading(false);
     })();
   }, []);
 
@@ -39,7 +47,6 @@ export default function UsersTable() {
   // User speichern (Profil und ggf. Auth/Passwort)
   async function handleSave() {
     if (!editing) return;
-
     // Profile updaten
     await supabase.from("profiles").update({
       first_name: editForm.first_name,
@@ -48,16 +55,15 @@ export default function UsersTable() {
       role: editForm.role
     }).eq("id", editing.id);
 
-    // E-Mail oder Passwort in Auth updaten (Service Role Key im Backend nötig!)
+    // Auth-Daten updaten (nur wenn geändert)
     if (editForm.email || editForm.password) {
-      await supabase.auth.admin.updateUserById(editing.id, {
-        email: editForm.email,
-        password: editForm.password || undefined,
-        user_metadata: { role: editForm.role }
-      });
+      const updateObj: any = { user_metadata: { role: editForm.role } };
+      if (editForm.email) updateObj.email = editForm.email;
+      if (editForm.password) updateObj.password = editForm.password;
+      await supabase.auth.admin.updateUserById(editing.id, updateObj);
     }
-    alert("User aktualisiert!");
 
+    alert("User aktualisiert!");
     setEditing(null);
     window.location.reload();
   }
@@ -71,9 +77,12 @@ export default function UsersTable() {
       email_confirm: true,
       user_metadata: { role: editForm.role || "user" }
     });
-    if (error) return alert("Fehler: " + error.message);
+    if (error) {
+      alert("Fehler: " + error.message);
+      return;
+    }
 
-    // Profile-Eintrag anlegen
+    // Profile-Eintrag anlegen (nur falls noch nicht vorhanden)
     await supabase.from("profiles").insert({
       id: data.user?.id,
       first_name: editForm.first_name,
@@ -86,6 +95,8 @@ export default function UsersTable() {
     setShowCreate(false);
     window.location.reload();
   }
+
+  if (loading) return <div>Lädt...</div>;
 
   return (
     <div>
