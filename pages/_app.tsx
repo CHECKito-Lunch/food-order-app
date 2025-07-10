@@ -9,7 +9,9 @@ import { supabase } from '@/lib/supabaseClient';
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <SessionContextProvider supabaseClient={supabase}>
-      <Component {...pageProps} />
+      <div className="min-h-screen bg-white text-gray-900 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
+        <Component {...pageProps} />
+      </div>
     </SessionContextProvider>
   );
 }
