@@ -16,9 +16,7 @@ export default function Login() {
     if (error) {
       alert(error.message);
     } else {
-      // Nach Login: Rolle holen
       const { data: { user } } = await supabase.auth.getUser();
-      // Rolle steckt meist in user.user_metadata.role (kann aber auch woanders stehen)
       const role = user?.user_metadata?.role || "user";
       if (role === "admin") {
         router.push("/admin");
@@ -29,31 +27,47 @@ export default function Login() {
   };
 
   return (
-    <div className="max-w-md mx-auto py-10">
-      <h1 className="text-2xl mb-4">Login</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          className="w-full p-2 border"
-          required
-        />
-        <input
-          name="password"
-          type="password"
-          placeholder="Passwort"
-          value={form.password}
-          onChange={handleChange}
-          className="w-full p-2 border"
-          required
-        />
-        <button type="submit" className="w-full bg-green-600 text-white p-2">
-          Einloggen
-        </button>
-      </form>
+    <div className="min-h-screen flex flex-col justify-center items-center bg-blue-50">
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-6 md:p-8 border border-blue-100">
+        <h1 className="text-3xl font-bold text-[#0056b3] mb-6 text-center tracking-tight">Login</h1>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-semibold mb-1 text-gray-700">Email</label>
+            <input
+              name="email"
+              type="email"
+              placeholder="z.B. max.mustermann@mail.de"
+              value={form.email}
+              onChange={handleChange}
+              className="w-full border border-blue-200 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base"
+              required
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-1 text-gray-700">Passwort</label>
+            <input
+              name="password"
+              type="password"
+              placeholder="Passwort"
+              value={form.password}
+              onChange={handleChange}
+              className="w-full border border-blue-200 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-[#0056b3] hover:bg-blue-800 text-white py-2.5 rounded-full font-semibold shadow transition text-lg"
+          >
+            Einloggen
+          </button>
+        </form>
+      </div>
+      {/* Optionale Fußzeile */}
+      <div className="mt-8 text-xs text-gray-400">
+        © {new Date().getFullYear()} CHECKito Lunch
+      </div>
     </div>
   );
 }

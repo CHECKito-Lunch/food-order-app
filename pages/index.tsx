@@ -4,6 +4,7 @@ import dayjs from '../lib/dayjs';
 import Login from './login'; // Pfad ggf. anpassen
 
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
+const CHECK24_BLUE = "bg-[#0056b3]"; // oder nutze bg-blue-700
 
 interface WeekMenu {
   id: number;
@@ -40,7 +41,6 @@ export default function Dashboard() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Auth
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
@@ -48,62 +48,49 @@ export default function Dashboard() {
     });
   }, []);
 
-  // Daten laden (bei user/kw/jahr)
   useEffect(() => {
     if (!user) return;
     (async () => {
-      // Menüs (ohne Caterer)
       const { data: menuData } = await supabase
         .from('week_menus')
         .select('id, day_of_week, menu_number, description, order_deadline')
         .eq('iso_year', selectedYear)
         .eq('iso_week', selectedWeek)
         .order('day_of_week');
-
       setMenus((menuData ?? []) as WeekMenu[]);
 
-      // Bestellungen des Users
       const { data: orderData } = await supabase
         .from('orders')
         .select('id, week_menu_id')
         .eq('user_id', user.id);
-
       setOrders((orderData ?? []) as Order[]);
 
-      // Profil laden
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
-
       setProfile(profileData);
       setProfileEdit(profileData);
     })();
   }, [user, selectedYear, selectedWeek]);
 
-  // Menü-Auswahl: pro Tag ein Menü auswählbar
   const getOrderForDay = (day: number) => {
     const menuIds = menus.filter(m => m.day_of_week === day).map(m => m.id);
     return orders.find(o => menuIds.includes(o.week_menu_id));
   };
 
-  // Bestellung inkl. Profil- und Menü-Infos anlegen
   const handleOrder = async (menu: WeekMenu) => {
     if (!profile) return;
     const isDeadline = dayjs(menu.order_deadline).isBefore(dayjs());
     if (isDeadline) return alert("Bestellfrist vorbei!");
 
-    // Für diesen Tag alle anderen Bestellungen entfernen
     const menuIdsToday = menus.filter(m => m.day_of_week === menu.day_of_week).map(m => m.id);
     const existingOrder = orders.find(o => menuIdsToday.includes(o.week_menu_id));
 
-    // Lösche ggf. vorherige Bestellung
     if (existingOrder && existingOrder.week_menu_id !== menu.id) {
       await supabase.from('orders').delete().eq('id', existingOrder.id);
     }
-
-    // Falls schon bestellt → Stornieren
     if (existingOrder && existingOrder.week_menu_id === menu.id) {
       await supabase.from('orders').delete().eq('id', existingOrder.id);
     } else {
@@ -116,8 +103,6 @@ export default function Dashboard() {
         menu_description: menu.description,
       });
     }
-
-    // Refresh
     const { data: orderData } = await supabase
       .from('orders')
       .select('id, week_menu_id')
@@ -125,7 +110,6 @@ export default function Dashboard() {
     setOrders((orderData ?? []) as Order[]);
   };
 
-  // Profil bearbeiten
   async function saveProfile() {
     if (!profile) return;
     await supabase.from('profiles').update({
@@ -133,31 +117,29 @@ export default function Dashboard() {
       last_name: profileEdit.last_name,
       location: profileEdit.location,
       email: profileEdit.email,
-      // role darf nicht geändert werden!
     }).eq('id', profile.id);
     setEditingProfile(false);
     setProfile({ ...profile, ...profileEdit });
     alert("Profil gespeichert!");
   }
 
-  // --- LOGIN/LOADING LOGIK ---
-  if (loading) return <div>Lädt...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center text-lg">Lädt...</div>;
   if (!user) return <Login />;
 
-  // Kalenderwochen-Auswahl erzeugen (aktuell ±10 Jahre, KW 1-53)
   const yearOptions = Array.from({ length: 10 }, (_, i) => today.year() - 5 + i);
   const weekOptions = Array.from({ length: 53 }, (_, i) => i + 1);
 
   return (
-    <div className="max-w-3xl mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
+    <div className="max-w-3xl mx-auto px-2 py-6 md:py-10">
+      {/* Header */}
+      <div className="rounded-2xl shadow-md border border-blue-100 mb-8 p-5 md:p-8 bg-white flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl">Menü-Bestellung</h1>
-          <div className="flex gap-4 mt-2 items-center">
-            <label>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#0056b3] mb-2 md:mb-1 tracking-tight">Menü-Bestellung</h1>
+          <div className="flex flex-wrap gap-3 items-center text-sm text-gray-700">
+            <label className="flex items-center gap-1">
               Jahr:
               <select
-                className="ml-1 border rounded px-2 py-1"
+                className="ml-1 border border-blue-200 rounded px-2 py-1 focus:ring-2 focus:ring-blue-400"
                 value={selectedYear}
                 onChange={e => setSelectedYear(Number(e.target.value))}
               >
@@ -166,10 +148,10 @@ export default function Dashboard() {
                 ))}
               </select>
             </label>
-            <label>
+            <label className="flex items-center gap-1">
               Kalenderwoche:
               <select
-                className="ml-1 border rounded px-2 py-1"
+                className="ml-1 border border-blue-200 rounded px-2 py-1 focus:ring-2 focus:ring-blue-400"
                 value={selectedWeek}
                 onChange={e => setSelectedWeek(Number(e.target.value))}
               >
@@ -181,7 +163,7 @@ export default function Dashboard() {
           </div>
         </div>
         <button
-          className="bg-gray-200 text-sm px-3 py-1 rounded"
+          className="mt-5 md:mt-0 self-start md:self-auto bg-[#0056b3] hover:bg-blue-800 transition text-white text-sm px-5 py-2 rounded-full shadow font-semibold"
           onClick={async () => {
             await supabase.auth.signOut();
             window.location.reload();
@@ -190,48 +172,52 @@ export default function Dashboard() {
       </div>
 
       {/* Profil anzeigen/bearbeiten */}
-      <div className="mb-6 border p-4 rounded bg-gray-50">
-        <h2 className="text-lg font-semibold mb-2">Mein Profil</h2>
+      <div className="mb-8 border border-blue-100 rounded-2xl shadow bg-white p-5 md:p-8">
+        <h2 className="text-lg font-semibold text-[#0056b3] mb-2">Mein Profil</h2>
         {!editingProfile ? (
           <div>
-            <p><b>Vorname:</b> {profile?.first_name}</p>
-            <p><b>Nachname:</b> {profile?.last_name}</p>
-            <p><b>Email:</b> {profile?.email}</p>
-            <p><b>Standort:</b> {profile?.location}</p>
+            <div className="flex flex-col md:flex-row md:gap-8 mb-1">
+              <div><b>Vorname:</b> {profile?.first_name}</div>
+              <div><b>Nachname:</b> {profile?.last_name}</div>
+            </div>
+            <div className="flex flex-col md:flex-row md:gap-8 mb-1">
+              <div><b>Email:</b> {profile?.email}</div>
+              <div><b>Standort:</b> {profile?.location}</div>
+            </div>
             <button
-              className="mt-2 px-3 py-1 bg-blue-600 text-white rounded"
+              className="mt-3 px-4 py-1.5 rounded-full bg-[#0056b3] text-white font-semibold shadow hover:bg-blue-800 transition"
               onClick={() => setEditingProfile(true)}
             >Bearbeiten</button>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
             <input
-              className="border p-1 rounded"
+              className="border border-blue-200 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={profileEdit.first_name || ''}
               onChange={e => setProfileEdit(p => ({ ...p, first_name: e.target.value }))}
               placeholder="Vorname"
             />
             <input
-              className="border p-1 rounded"
+              className="border border-blue-200 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={profileEdit.last_name || ''}
               onChange={e => setProfileEdit(p => ({ ...p, last_name: e.target.value }))}
               placeholder="Nachname"
             />
             <input
-              className="border p-1 rounded"
+              className="border border-blue-200 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={profileEdit.email || ''}
               onChange={e => setProfileEdit(p => ({ ...p, email: e.target.value }))}
               placeholder="Email"
             />
             <input
-              className="border p-1 rounded"
+              className="border border-blue-200 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={profileEdit.location || ''}
               onChange={e => setProfileEdit(p => ({ ...p, location: e.target.value }))}
               placeholder="Standort"
             />
             <div className="flex gap-2 mt-2">
-              <button className="px-3 py-1 bg-green-600 text-white rounded" onClick={saveProfile}>Speichern</button>
-              <button className="px-3 py-1 text-red-600" onClick={() => setEditingProfile(false)}>Abbrechen</button>
+              <button className="px-4 py-1.5 bg-green-600 text-white rounded-full font-semibold hover:bg-green-700" onClick={saveProfile}>Speichern</button>
+              <button className="px-4 py-1.5 text-red-600 rounded-full border border-red-100 hover:bg-red-100" onClick={() => setEditingProfile(false)}>Abbrechen</button>
             </div>
           </div>
         )}
@@ -244,35 +230,32 @@ export default function Dashboard() {
           const menusOfDay = menus.filter(m => m.day_of_week === day);
           const selectedOrder = getOrderForDay(day);
 
-          // Datum für den Tag der gewählten KW/Jahr bestimmen (Montag = 1)
-          const tagDatum = dayjs()
-            .year(selectedYear)
-            .week(selectedWeek)
-            .day(day);
+          const tagDatum = dayjs().year(selectedYear).week(selectedWeek).day(day);
 
           return (
-            <div key={day} className="border rounded p-4 bg-white">
-              <div className="font-semibold mb-2">
+            <div key={day} className="border border-blue-100 rounded-2xl shadow bg-white p-4 md:p-6">
+              <div className="font-semibold text-base md:text-lg mb-2 text-[#0056b3] flex flex-wrap items-center gap-2">
                 {dayName}
-                <span className="text-sm text-gray-500 ml-2">
+                <span className="text-xs md:text-sm text-gray-500 font-normal">
                   ({tagDatum.format("DD.MM.YYYY")})
                 </span>
               </div>
               {menusOfDay.length === 0 && (
-                <div className="text-gray-400">Kein Menü eingetragen.</div>
+                <div className="text-gray-400 mb-2">Kein Menü eingetragen.</div>
               )}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {menusOfDay.map(m => (
-                  <label key={m.id} className="flex items-center gap-2 cursor-pointer">
+                  <label key={m.id} className="flex items-center gap-2 cursor-pointer rounded-lg px-2 py-2 hover:bg-blue-50 transition">
                     <input
                       type="radio"
                       name={`order-day-${day}`}
                       checked={selectedOrder?.week_menu_id === m.id}
                       disabled={dayjs(m.order_deadline).isBefore(dayjs())}
                       onChange={() => handleOrder(m)}
+                      className="accent-[#0056b3] w-5 h-5"
                     />
                     <span>
-                      <b>Nr:</b> {m.menu_number} – {m.description}<br />
+                      <span className="font-medium">Nr:</span> {m.menu_number} – {m.description}<br />
                       <span className="text-xs text-gray-500">
                         Deadline: {dayjs(m.order_deadline).format('DD.MM.YYYY HH:mm')}
                         {dayjs(m.order_deadline).isBefore(dayjs()) && " (abgelaufen)"}
@@ -280,13 +263,11 @@ export default function Dashboard() {
                     </span>
                   </label>
                 ))}
-                {/* Nur EIN Button pro Tag */}
                 {selectedOrder && (
                   <button
-                    className="mt-2 px-3 py-1 bg-red-600 text-white rounded"
+                    className="mt-1 px-4 py-1.5 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 shadow transition w-fit"
                     onClick={async () => {
                       await supabase.from('orders').delete().eq('id', selectedOrder.id);
-                      // Refresh Orders
                       const { data: orderData } = await supabase
                         .from('orders')
                         .select('id, week_menu_id')
