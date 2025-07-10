@@ -88,7 +88,9 @@ export default function Dashboard() {
     return orders.find(o => menuIds.includes(o.week_menu_id));
   };
 
+  // Bestellung inkl. Profil- und Menü-Infos anlegen
   const handleOrder = async (menu: WeekMenu) => {
+    if (!profile) return;
     const isDeadline = dayjs(menu.order_deadline).isBefore(dayjs());
     if (isDeadline) return alert("Bestellfrist vorbei!");
 
@@ -105,7 +107,14 @@ export default function Dashboard() {
     if (existingOrder && existingOrder.week_menu_id === menu.id) {
       await supabase.from('orders').delete().eq('id', existingOrder.id);
     } else {
-      await supabase.from('orders').insert({ user_id: user.id, week_menu_id: menu.id });
+      await supabase.from('orders').insert({
+        user_id: user.id,
+        week_menu_id: menu.id,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        location: profile.location,
+        menu_description: menu.description,
+      });
     }
 
     // Refresh
