@@ -11,7 +11,6 @@ interface WeekMenu {
   menu_number: number;
   description: string;
   order_deadline: string;
-  // caterer: { name: string } | null;  // Entfernt!
 }
 
 interface Order {
@@ -236,9 +235,20 @@ export default function Dashboard() {
           const menusOfDay = menus.filter(m => m.day_of_week === day);
           const selectedOrder = getOrderForDay(day);
 
+          // Datum für den Tag der gewählten KW/Jahr bestimmen (Montag = 1)
+          const tagDatum = dayjs()
+            .year(selectedYear)
+            .week(selectedWeek)
+            .day(day);
+
           return (
             <div key={day} className="border rounded p-4 bg-white">
-              <div className="font-semibold mb-2">{dayName}</div>
+              <div className="font-semibold mb-2">
+                {dayName}
+                <span className="text-sm text-gray-500 ml-2">
+                  ({tagDatum.format("DD.MM.YYYY")})
+                </span>
+              </div>
               {menusOfDay.length === 0 && (
                 <div className="text-gray-400">Kein Menü eingetragen.</div>
               )}
@@ -261,6 +271,7 @@ export default function Dashboard() {
                     </span>
                   </label>
                 ))}
+                {/* Nur EIN Button pro Tag */}
                 {selectedOrder && (
                   <button
                     className="mt-2 px-3 py-1 bg-red-600 text-white rounded"
