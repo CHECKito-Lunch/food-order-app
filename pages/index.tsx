@@ -5,22 +5,13 @@ import Login from './login'; // Pfad ggf. anpassen
 
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
 
-interface RawWeekMenu {
-  id: number;
-  day_of_week: number;
-  menu_number: number;
-  description: string;
-  order_deadline: string;
-  caterers: { name: string }[];
-}
-
 interface WeekMenu {
   id: number;
   day_of_week: number;
   menu_number: number;
   description: string;
   order_deadline: string;
-  caterer: { name: string };
+  // caterer: { name: string } | null;  // Entfernt!
 }
 
 interface Order {
@@ -62,20 +53,15 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      // Menüs
+      // Menüs (ohne Caterer)
       const { data: menuData } = await supabase
         .from('week_menus')
-        .select('id, day_of_week, menu_number, description, order_deadline, caterers(name)')
+        .select('id, day_of_week, menu_number, description, order_deadline')
         .eq('iso_year', selectedYear)
         .eq('iso_week', selectedWeek)
         .order('day_of_week');
 
-      const rawMenus = (menuData ?? []) as RawWeekMenu[];
-      const formattedMenus: WeekMenu[] = rawMenus.map(({ caterers, ...rest }) => ({
-        ...rest,
-        caterer: { name: caterers[0]?.name ?? '' },
-      }));
-      setMenus(formattedMenus);
+      setMenus((menuData ?? []) as WeekMenu[]);
 
       // Bestellungen des Users
       const { data: orderData } = await supabase
@@ -267,7 +253,7 @@ export default function Dashboard() {
                       onChange={() => handleOrder(m)}
                     />
                     <span>
-                      <b>Nr:</b> {m.menu_number} – {m.description} ({m.caterer.name})<br />
+                      <b>Nr:</b> {m.menu_number} – {m.description}<br />
                       <span className="text-xs text-gray-500">
                         Deadline: {dayjs(m.order_deadline).format('DD.MM.YYYY HH:mm')}
                         {dayjs(m.order_deadline).isBefore(dayjs()) && " (abgelaufen)"}
