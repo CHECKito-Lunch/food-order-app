@@ -25,11 +25,12 @@ export default function Login() {
       }
     }
   };
-<div className="bg-red-500 text-white p-4">Test</div>
+
 
   return (
     
     <div className="min-h-screen flex flex-col justify-center items-center bg-blue-50 px-2">
+       <div className="bg-red-500 text-white p-4 mb-4">Test</div>
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8 border border-blue-100">
         {/* LOGO */}
         <div className="flex justify-center mb-5">
