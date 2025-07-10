@@ -1,32 +1,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 
-interface OrderAdminRaw {
-  id: number;
-  location: string;
-  profiles: { first_name: string; last_name: string }[];
-  week_menus: {
-    menu_number: number;
-    description: string;
-    order_deadline: string;
-    caterer: { name: string }[];
-    iso_week: number;
-    iso_year: number;
-  }[];
-}
-
 interface OrderAdmin {
   id: number;
+  first_name: string;
+  last_name: string;
   location: string;
-  profile: { first_name: string; last_name: string };
-  week_menu: {
-    menu_number: number;
-    description: string;
-    order_deadline: string;
-    caterer: { name: string };
-    iso_week: number;
-    iso_year: number;
-  };
+  menu_description: string;
+  week_menu_id: number;
+  // Diese Felder für Anzeige/Export:
+  iso_week: number;
+  iso_year: number;
+  menu_number: number;
+  order_deadline: string;
 }
 
 export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, isoWeek: number }) {
@@ -36,20 +22,17 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
   useEffect(() => {
     async function fetchOrders() {
       setLoading(true);
+      // week_menu Infos (nummer, deadline, iso_week/year) holen wir uns aus Join
       const { data, error } = await supabase
         .from('orders')
         .select(`
           id,
+          first_name,
+          last_name,
           location,
-          profiles(first_name, last_name),
-          week_menus(
-            menu_number,
-            description,
-            order_deadline,
-            caterer(name),
-            iso_week,
-            iso_year
-          )
+          menu_description,
+          week_menu_id,
+          week_menus(menu_number, order_deadline, iso_week, iso_year)
         `)
         .eq('week_menus.iso_week', isoWeek)
         .eq('week_menus.iso_year', isoYear);
@@ -61,20 +44,18 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         return;
       }
 
-      // Typisierung, auch falls Felder mal fehlen
-      const raw = (data ?? []) as OrderAdminRaw[];
-      const formatted: OrderAdmin[] = raw.map(r => ({
-        id: r.id,
-        location: r.location ?? "",
-        profile: r.profiles[0] ?? { first_name: '', last_name: '' },
-        week_menu: {
-          menu_number: r.week_menus[0]?.menu_number ?? 0,
-          description: r.week_menus[0]?.description ?? '',
-          order_deadline: r.week_menus[0]?.order_deadline ?? '',
-          caterer: { name: r.week_menus[0]?.caterer[0]?.name ?? '' },
-          iso_week: r.week_menus[0]?.iso_week ?? 0,
-          iso_year: r.week_menus[0]?.iso_year ?? 0,
-        },
+      // Typisierung
+      const formatted: OrderAdmin[] = (data ?? []).map((row: any) => ({
+        id: row.id,
+        first_name: row.first_name ?? "",
+        last_name: row.last_name ?? "",
+        location: row.location ?? "",
+        menu_description: row.menu_description ?? "",
+        week_menu_id: row.week_menu_id,
+        menu_number: row.week_menus?.menu_number ?? 0,
+        order_deadline: row.week_menus?.order_deadline ?? "",
+        iso_week: row.week_menus?.iso_week ?? 0,
+        iso_year: row.week_menus?.iso_year ?? 0,
       }));
 
       setOrders(formatted);
@@ -86,17 +67,16 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
 
   // CSV-Export (inkl. Location)
   function exportCSV() {
-    const header = ["Vorname", "Nachname", "Location", "KW", "Jahr", "Nr.", "Gericht", "Caterer", "Deadline"];
+    const header = ["Vorname", "Nachname", "Location", "KW", "Jahr", "Nr.", "Gericht", "Deadline"];
     const rows = orders.map(o => [
-      o.profile.first_name,
-      o.profile.last_name,
+      o.first_name,
+      o.last_name,
       o.location,
-      o.week_menu.iso_week,
-      o.week_menu.iso_year,
-      o.week_menu.menu_number,
-      o.week_menu.description,
-      o.week_menu.caterer.name,
-      new Date(o.week_menu.order_deadline).toLocaleString("de"),
+      o.iso_week,
+      o.iso_year,
+      o.menu_number,
+      o.menu_description,
+      new Date(o.order_deadline).toLocaleString("de"),
     ]);
     const csv = [header, ...rows].map(r => r.join(";")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -132,22 +112,20 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
               <th className="p-2 border">Jahr</th>
               <th className="p-2 border">Nr.</th>
               <th className="p-2 border">Gericht</th>
-              <th className="p-2 border">Caterer</th>
               <th className="p-2 border">Deadline</th>
             </tr>
           </thead>
           <tbody>
             {orders.map(o => (
               <tr key={o.id}>
-                <td className="border p-2">{o.profile.first_name}</td>
-                <td className="border p-2">{o.profile.last_name}</td>
+                <td className="border p-2">{o.first_name}</td>
+                <td className="border p-2">{o.last_name}</td>
                 <td className="border p-2">{o.location}</td>
-                <td className="border p-2">{o.week_menu.iso_week}</td>
-                <td className="border p-2">{o.week_menu.iso_year}</td>
-                <td className="border p-2">{o.week_menu.menu_number}</td>
-                <td className="border p-2">{o.week_menu.description}</td>
-                <td className="border p-2">{o.week_menu.caterer.name}</td>
-                <td className="border p-2">{new Date(o.week_menu.order_deadline).toLocaleString('de')}</td>
+                <td className="border p-2">{o.iso_week}</td>
+                <td className="border p-2">{o.iso_year}</td>
+                <td className="border p-2">{o.menu_number}</td>
+                <td className="border p-2">{o.menu_description}</td>
+                <td className="border p-2">{new Date(o.order_deadline).toLocaleString('de')}</td>
               </tr>
             ))}
           </tbody>
