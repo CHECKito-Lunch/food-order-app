@@ -145,8 +145,6 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       }))
     );
 
-    // Upsert auf id (Auto-Increment Primary Key)
-    // Wenn id fehlt, wird INSERT gemacht, sonst UPDATE!
     const { error } = await supabase
       .from('week_menus')
       .upsert(allMenus, { onConflict: 'id' });
@@ -155,7 +153,6 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       return;
     }
     alert('Woche gespeichert');
-    // Nach Speichern Menüs neu laden
     reloadMenus();
   };
 
@@ -249,20 +246,20 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   // --- Confirm Modal ---
   const ConfirmModal = () => (
     confirm && (
-      <div className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-30 flex items-center justify-center z-30">
-        <div className="bg-white p-8 rounded-lg shadow-lg min-w-[300px] text-center">
+      <div className="fixed inset-0 z-30 bg-black bg-opacity-40 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-2xl shadow-lg min-w-[300px] text-center border border-blue-100">
           {confirm.action === "delete-preset" && (
             <>
               <p className="mb-4">Preset wirklich <b>löschen</b>?</p>
-              <button className="bg-red-600 text-white px-4 py-2 rounded mr-2" onClick={handleDeletePreset}>Löschen</button>
-              <button className="bg-gray-300 px-4 py-2 rounded" onClick={() => setConfirm(null)}>Abbrechen</button>
+              <button className="bg-red-600 text-white px-4 py-2 rounded-full font-semibold mr-2 hover:bg-red-700 shadow" onClick={handleDeletePreset}>Löschen</button>
+              <button className="bg-gray-200 px-4 py-2 rounded-full font-semibold" onClick={() => setConfirm(null)}>Abbrechen</button>
             </>
           )}
           {confirm.action === "load-preset" && (
             <>
               <p className="mb-4">Preset wirklich <b>laden</b>?<br /><span className="text-sm text-gray-500">(Alle aktuellen Menüs werden überschrieben!)</span></p>
-              <button className="bg-green-600 text-white px-4 py-2 rounded mr-2" onClick={handleLoadPreset}>Preset laden</button>
-              <button className="bg-gray-300 px-4 py-2 rounded" onClick={() => setConfirm(null)}>Abbrechen</button>
+              <button className="bg-green-600 text-white px-4 py-2 rounded-full font-semibold mr-2 hover:bg-green-700 shadow" onClick={handleLoadPreset}>Preset laden</button>
+              <button className="bg-gray-200 px-4 py-2 rounded-full font-semibold" onClick={() => setConfirm(null)}>Abbrechen</button>
             </>
           )}
         </div>
@@ -272,85 +269,92 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
   return (
     <div className="space-y-8">
-      <h2 className="text-xl font-bold mb-2">Menü KW {isoWeek}/{isoYear}</h2>
-      <div className="flex gap-2 mb-2 flex-wrap">
-        <input value={presetName} onChange={e => setPresetName(e.target.value)} placeholder="Preset-Name" className="border p-1"/>
-        <button onClick={handleSavePreset} className="bg-blue-600 text-white px-3 py-1 rounded">Preset speichern</button>
-        <select value={selectedPresetId || ""} onChange={e => setSelectedPresetId(Number(e.target.value))} className="border p-1">
+      <h2 className="text-xl font-bold mb-2 text-[#0056b3]">Menü KW {isoWeek}/{isoYear}</h2>
+
+      {/* Presetbar */}
+      <div className="flex flex-wrap gap-2 mb-2">
+        <input value={presetName} onChange={e => setPresetName(e.target.value)} placeholder="Preset-Name" className="border border-blue-200 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        <button onClick={handleSavePreset} className="bg-[#0056b3] hover:bg-blue-800 text-white font-semibold px-4 py-2 rounded-full shadow">Preset speichern</button>
+        <select value={selectedPresetId || ""} onChange={e => setSelectedPresetId(Number(e.target.value))} className="border border-blue-200 p-2 rounded-lg">
           <option value="">Preset wählen…</option>
           {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <button onClick={handleTryLoadPreset} className="bg-green-600 text-white px-3 py-1 rounded">Preset laden</button>
-        <button onClick={handleUndo} disabled={undoStack.length === 0} className="bg-yellow-400 text-black px-3 py-1 rounded ml-4 disabled:bg-yellow-200">Undo</button>
-        <button onClick={exportCSV} className="bg-orange-600 text-white px-3 py-1 rounded ml-2">Export als CSV</button>
+        <button onClick={handleTryLoadPreset} className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-full shadow">Preset laden</button>
+        <button onClick={handleUndo} disabled={undoStack.length === 0} className="bg-yellow-400 text-black font-semibold px-4 py-2 rounded-full shadow disabled:bg-yellow-200">Undo</button>
+        <button onClick={exportCSV} className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2 rounded-full shadow">Export als CSV</button>
       </div>
+
       {/* Preset-Liste für Edit/Löschen */}
-      <div className="mb-2">
+      <div className="flex flex-wrap gap-2 mb-2">
         {presets.map(p => (
-          <div key={p.id} className="flex items-center gap-2 text-sm mt-1">
+          <div key={p.id} className="flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-lg text-sm">
             {editPresetId === p.id ? (
               <>
-                <input value={editPresetName} onChange={e => setEditPresetName(e.target.value)} className="border p-1"/>
-                <button onClick={handleSavePresetName} className="bg-blue-600 text-white px-2 py-1 rounded">Speichern</button>
-                <button onClick={() => setEditPresetId(null)} className="text-red-600">Abbrechen</button>
+                <input value={editPresetName} onChange={e => setEditPresetName(e.target.value)} className="border border-blue-200 p-1 rounded" />
+                <button onClick={handleSavePresetName} className="bg-[#0056b3] hover:bg-blue-800 text-white px-2 py-1 rounded-full font-semibold">Speichern</button>
+                <button onClick={() => setEditPresetId(null)} className="text-red-600 font-semibold">Abbrechen</button>
               </>
             ) : (
               <>
                 <span>{p.name}</span>
-                <button onClick={() => handleEditPresetName(p.id, p.name)} className="text-blue-600 underline">Umbenennen</button>
-                <button onClick={() => handleTryDeletePreset(p.id)} className="text-red-600 underline">Löschen</button>
+                <button onClick={() => handleEditPresetName(p.id, p.name)} className="text-[#0056b3] underline font-semibold">Umbenennen</button>
+                <button onClick={() => handleTryDeletePreset(p.id)} className="text-red-600 underline font-semibold">Löschen</button>
               </>
             )}
           </div>
         ))}
       </div>
+
+      {/* Tages-Menüs */}
       {Object.entries(WEEKDAYS).map(([d, name]) => (
-        <div key={d} className="mb-4 border rounded p-3 bg-gray-50">
-          <div className="flex items-center justify-between mb-2">
-            <div className="font-semibold">{name}</div>
-            <div>
-              <button onClick={() => handleAddMenu(Number(d))} className="px-2 bg-blue-500 text-white rounded mr-2">+ Menü</button>
-              <button onClick={() => handleCopyDay(Number(d))} className="px-2 bg-yellow-400 text-black rounded mr-2">Kopieren</button>
+        <div key={d} className="mb-4 border border-blue-100 rounded-2xl shadow bg-white p-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-3">
+            <div className="font-semibold text-[#0056b3]">{name}</div>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => handleAddMenu(Number(d))} className="px-3 py-1 bg-[#0056b3] hover:bg-blue-800 text-white rounded-full font-semibold shadow">+ Menü</button>
+              <button onClick={() => handleCopyDay(Number(d))} className="px-3 py-1 bg-yellow-400 text-black rounded-full font-semibold shadow">Kopieren</button>
               {copiedDay && (
                 <>
                   <select
                     value={pasteTarget}
                     onChange={e => setPasteTarget(Number(e.target.value))}
-                    className="border p-1 mx-2"
+                    className="border border-blue-200 p-2 rounded-lg"
                   >
                     {[1,2,3,4,5].map(dd => <option key={dd} value={dd}>{WEEKDAYS[dd]}</option>)}
                   </select>
-                  <button onClick={handlePasteDay} className="bg-green-600 text-white rounded px-2">Einfügen</button>
-                  <button onClick={() => setCopiedDay(null)} className="text-red-600 ml-2">Abbruch</button>
+                  <button onClick={handlePasteDay} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-full font-semibold shadow">Einfügen</button>
+                  <button onClick={() => setCopiedDay(null)} className="text-red-600 font-semibold ml-2">Abbruch</button>
                 </>
               )}
             </div>
           </div>
           {menus[Number(d)].length === 0 && (
-            <div className="text-gray-500 text-sm">Noch kein Menü für {name}.</div>
+            <div className="text-gray-400 text-sm">Noch kein Menü für {name}.</div>
           )}
-          {menus[Number(d)].map((m, i) => (
-            <div key={i} className="flex gap-2 mb-2">
-              <input type="number" value={m.menu_number}
-                onChange={e => handleMenuChange(Number(d), i, { menu_number: Number(e.target.value) })}
-                className="border p-1 w-16" />
-              <input type="text" value={m.description}
-                onChange={e => handleMenuChange(Number(d), i, { description: e.target.value })}
-                className="border p-1 w-48" placeholder="Bezeichnung" />
-              <select value={m.caterer_id}
-                onChange={e => handleMenuChange(Number(d), i, { caterer_id: Number(e.target.value) })}
-                className="border p-1">
-                {CATERER_OPTIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <input type="datetime-local" value={m.order_deadline}
-                onChange={e => handleMenuChange(Number(d), i, { order_deadline: e.target.value })}
-                className="border p-1" />
-              <button onClick={() => handleRemoveMenu(Number(d), i)} className="bg-red-500 text-white rounded px-2">Entfernen</button>
-            </div>
-          ))}
+          <div className="space-y-2">
+            {menus[Number(d)].map((m, i) => (
+              <div key={i} className="flex flex-col md:flex-row gap-2 items-start md:items-center bg-blue-50 px-2 py-2 rounded-lg">
+                <input type="number" value={m.menu_number}
+                  onChange={e => handleMenuChange(Number(d), i, { menu_number: Number(e.target.value) })}
+                  className="border border-blue-200 p-1 rounded w-20" />
+                <input type="text" value={m.description}
+                  onChange={e => handleMenuChange(Number(d), i, { description: e.target.value })}
+                  className="border border-blue-200 p-1 rounded flex-1 min-w-[120px]" placeholder="Bezeichnung" />
+                <select value={m.caterer_id}
+                  onChange={e => handleMenuChange(Number(d), i, { caterer_id: Number(e.target.value) })}
+                  className="border border-blue-200 p-1 rounded">
+                  {CATERER_OPTIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <input type="datetime-local" value={m.order_deadline}
+                  onChange={e => handleMenuChange(Number(d), i, { order_deadline: e.target.value })}
+                  className="border border-blue-200 p-1 rounded" />
+                <button onClick={() => handleRemoveMenu(Number(d), i)} className="bg-red-500 hover:bg-red-700 text-white rounded-full px-3 py-1 font-semibold shadow">Entfernen</button>
+              </div>
+            ))}
+          </div>
         </div>
       ))}
-      <button onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded">Speichern</button>
+      <button onClick={handleSave} className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-full shadow">Speichern</button>
       <ConfirmModal />
     </div>
   );

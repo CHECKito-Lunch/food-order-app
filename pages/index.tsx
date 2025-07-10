@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import dayjs from '../lib/dayjs';
-import Login from './login'; // Pfad ggf. anpassen
+import Login from './login';
 
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
-const CHECK24_BLUE = "bg-[#0056b3]"; // oder nutze bg-blue-700
 
 interface WeekMenu {
   id: number;
@@ -32,7 +31,6 @@ export default function Dashboard() {
   const today = dayjs();
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [selectedWeek, setSelectedWeek] = useState(today.week());
-
   const [menus, setMenus] = useState<WeekMenu[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -84,10 +82,8 @@ export default function Dashboard() {
     if (!profile) return;
     const isDeadline = dayjs(menu.order_deadline).isBefore(dayjs());
     if (isDeadline) return alert("Bestellfrist vorbei!");
-
     const menuIdsToday = menus.filter(m => m.day_of_week === menu.day_of_week).map(m => m.id);
     const existingOrder = orders.find(o => menuIdsToday.includes(o.week_menu_id));
-
     if (existingOrder && existingOrder.week_menu_id !== menu.id) {
       await supabase.from('orders').delete().eq('id', existingOrder.id);
     }
@@ -134,7 +130,9 @@ export default function Dashboard() {
       {/* Header */}
       <div className="rounded-2xl shadow-md border border-blue-100 mb-8 p-5 md:p-8 bg-white flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#0056b3] mb-2 md:mb-1 tracking-tight">Menü-Bestellung</h1>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-[#0056b3] mb-2 md:mb-1 tracking-tight">
+            <span className="inline-block align-middle">Menü-Bestellung</span>
+          </h1>
           <div className="flex flex-wrap gap-3 items-center text-sm text-gray-700">
             <label className="flex items-center gap-1">
               Jahr:
@@ -229,9 +227,7 @@ export default function Dashboard() {
           const day = idx + 1;
           const menusOfDay = menus.filter(m => m.day_of_week === day);
           const selectedOrder = getOrderForDay(day);
-
           const tagDatum = dayjs().year(selectedYear).week(selectedWeek).day(day);
-
           return (
             <div key={day} className="border border-blue-100 rounded-2xl shadow bg-white p-4 md:p-6">
               <div className="font-semibold text-base md:text-lg mb-2 text-[#0056b3] flex flex-wrap items-center gap-2">

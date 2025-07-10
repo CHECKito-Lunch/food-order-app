@@ -8,7 +8,6 @@ interface OrderAdmin {
   location: string;
   menu_description: string;
   week_menu_id: number;
-  // Diese Felder für Anzeige/Export:
   iso_week: number;
   iso_year: number;
   menu_number: number;
@@ -22,7 +21,6 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
   useEffect(() => {
     async function fetchOrders() {
       setLoading(true);
-      // week_menu Infos (nummer, deadline, iso_week/year) holen wir uns aus Join
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -44,7 +42,6 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         return;
       }
 
-      // Typisierung
       const formatted: OrderAdmin[] = (data ?? []).map((row: any) => ({
         id: row.id,
         first_name: row.first_name ?? "",
@@ -65,7 +62,6 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
     fetchOrders();
   }, [isoYear, isoWeek]);
 
-  // CSV-Export (inkl. Location)
   function exportCSV() {
     const header = ["Vorname", "Nachname", "Location", "KW", "Jahr", "Nr.", "Gericht", "Deadline"];
     const rows = orders.map(o => [
@@ -89,47 +85,49 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold mb-2">Bestellungen Übersicht (KW {isoWeek}/{isoYear})</h2>
+    <div className="w-full">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+        <h2 className="text-xl font-bold text-[#0056b3]">Bestellungen Übersicht <span className="font-normal text-gray-500">(KW {isoWeek}/{isoYear})</span></h2>
         <button
           onClick={exportCSV}
-          className="bg-green-600 text-white px-4 py-1 rounded"
+          className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full shadow font-semibold transition w-full md:w-auto"
         >
           Exportieren (CSV)
         </button>
       </div>
       {loading ? (
-        <div>Lädt...</div>
+        <div className="text-center py-10 text-lg">Lädt...</div>
       ) : (
-        <table className="min-w-full border">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 border">Vorname</th>
-              <th className="p-2 border">Nachname</th>
-              <th className="p-2 border">Location</th>
-              <th className="p-2 border">KW</th>
-              <th className="p-2 border">Jahr</th>
-              <th className="p-2 border">Nr.</th>
-              <th className="p-2 border">Gericht</th>
-              <th className="p-2 border">Deadline</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map(o => (
-              <tr key={o.id}>
-                <td className="border p-2">{o.first_name}</td>
-                <td className="border p-2">{o.last_name}</td>
-                <td className="border p-2">{o.location}</td>
-                <td className="border p-2">{o.iso_week}</td>
-                <td className="border p-2">{o.iso_year}</td>
-                <td className="border p-2">{o.menu_number}</td>
-                <td className="border p-2">{o.menu_description}</td>
-                <td className="border p-2">{new Date(o.order_deadline).toLocaleString('de')}</td>
+        <div className="overflow-x-auto rounded-2xl border border-blue-100 shadow bg-white">
+          <table className="min-w-full divide-y divide-blue-100">
+            <thead>
+              <tr className="bg-blue-50">
+                <th className="p-3 font-semibold text-[#0056b3]">Vorname</th>
+                <th className="p-3 font-semibold text-[#0056b3]">Nachname</th>
+                <th className="p-3 font-semibold text-[#0056b3]">Location</th>
+                <th className="p-3 font-semibold text-[#0056b3]">KW</th>
+                <th className="p-3 font-semibold text-[#0056b3]">Jahr</th>
+                <th className="p-3 font-semibold text-[#0056b3]">Nr.</th>
+                <th className="p-3 font-semibold text-[#0056b3]">Gericht</th>
+                <th className="p-3 font-semibold text-[#0056b3]">Deadline</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {orders.map(o => (
+                <tr key={o.id} className="hover:bg-blue-50">
+                  <td className="p-3 border-t">{o.first_name}</td>
+                  <td className="p-3 border-t">{o.last_name}</td>
+                  <td className="p-3 border-t">{o.location}</td>
+                  <td className="p-3 border-t">{o.iso_week}</td>
+                  <td className="p-3 border-t">{o.iso_year}</td>
+                  <td className="p-3 border-t">{o.menu_number}</td>
+                  <td className="p-3 border-t">{o.menu_description}</td>
+                  <td className="p-3 border-t">{new Date(o.order_deadline).toLocaleString('de')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

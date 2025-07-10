@@ -36,64 +36,84 @@ export default function Admin() {
     });
   }, [router]);
 
-  if (loading) return <div>Lädt...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center text-lg">Lädt...</div>;
   if (!user) return null;
 
   return (
-    <div className="max-w-4xl mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-      {/* NAVIGATION */}
-      <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => setActiveTab("users")}
-          className={`px-4 py-2 rounded-t ${activeTab === "users" ? "bg-blue-600 text-white" : "bg-gray-100"}`}
-        >
-          Userverwaltung
-        </button>
-        <button
-          onClick={() => setActiveTab("menu")}
-          className={`px-4 py-2 rounded-t ${activeTab === "menu" ? "bg-blue-600 text-white" : "bg-gray-100"}`}
-        >
-          Wochen-Menü Editor
-        </button>
-        <button
-          onClick={() => setActiveTab("orders")}
-          className={`px-4 py-2 rounded-t ${activeTab === "orders" ? "bg-blue-600 text-white" : "bg-gray-100"}`}
-        >
-          Bestellübersicht
-        </button>
-      </div>
-
-      {/* KALENDERWOCHE-AUSWAHL nur für Menü/Orders */}
-      {activeTab !== "users" && (
-        <div className="flex gap-4 items-center mb-4">
-          <label>
-            Jahr:{" "}
-            <input
-              type="number"
-              value={isoYear}
-              onChange={e => setIsoYear(Number(e.target.value))}
-              className="border p-1 w-20"
-            />
-          </label>
-          <label>
-            KW:{" "}
-            <input
-              type="number"
-              min={1}
-              max={53}
-              value={isoWeek}
-              onChange={e => setIsoWeek(Number(e.target.value))}
-              className="border p-1 w-14"
-            />
-          </label>
+    <div className="min-h-screen bg-blue-50 flex flex-col items-center">
+      <div className="w-full max-w-4xl mx-auto mt-10 px-2 md:px-0">
+        <div className="rounded-2xl shadow-md border border-blue-100 mb-8 p-6 bg-white flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold text-[#0056b3] mb-2 md:mb-0 tracking-tight">
+            Admin Dashboard
+          </h1>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`px-4 py-2 rounded-full font-semibold transition ${
+                activeTab === "users"
+                  ? "bg-[#0056b3] text-white shadow"
+                  : "bg-blue-100 text-[#0056b3] hover:bg-blue-200"
+              }`}
+            >
+              Userverwaltung
+            </button>
+            <button
+              onClick={() => setActiveTab("menu")}
+              className={`px-4 py-2 rounded-full font-semibold transition ${
+                activeTab === "menu"
+                  ? "bg-[#0056b3] text-white shadow"
+                  : "bg-blue-100 text-[#0056b3] hover:bg-blue-200"
+              }`}
+            >
+              Wochen-Menü Editor
+            </button>
+            <button
+              onClick={() => setActiveTab("orders")}
+              className={`px-4 py-2 rounded-full font-semibold transition ${
+                activeTab === "orders"
+                  ? "bg-[#0056b3] text-white shadow"
+                  : "bg-blue-100 text-[#0056b3] hover:bg-blue-200"
+              }`}
+            >
+              Bestellübersicht
+            </button>
+          </div>
         </div>
-      )}
 
-      {/* TAB INHALTE */}
-      {activeTab === "users" && <UsersTable />}
-      {activeTab === "menu" && <WeekMenuEditor isoYear={isoYear} isoWeek={isoWeek} />}
-      {activeTab === "orders" && <OrdersTable isoYear={isoYear} isoWeek={isoWeek} />}
+        {/* Kalenderwoche-Auswahl nur für Menü/Orders */}
+        {activeTab !== "users" && (
+          <div className="flex flex-wrap gap-4 items-center mb-6 bg-blue-50 p-3 rounded-xl border border-blue-100 shadow-inner">
+            <label className="flex items-center gap-1 text-gray-700">
+              Jahr:
+              <input
+                type="number"
+                value={isoYear}
+                onChange={e => setIsoYear(Number(e.target.value))}
+                className="border border-blue-200 rounded px-2 py-1 w-24 focus:ring-2 focus:ring-blue-400"
+              />
+            </label>
+            <label className="flex items-center gap-1 text-gray-700">
+              KW:
+              <input
+                type="number"
+                min={1}
+                max={53}
+                value={isoWeek}
+                onChange={e => setIsoWeek(Number(e.target.value))}
+                className="border border-blue-200 rounded px-2 py-1 w-16 focus:ring-2 focus:ring-blue-400"
+              />
+            </label>
+          </div>
+        )}
+
+        {/* TAB INHALTE */}
+        <div className="bg-white rounded-2xl shadow p-4">
+          {activeTab === "users" && <UsersTable />}
+          {activeTab === "menu" && <WeekMenuEditor isoYear={isoYear} isoWeek={isoWeek} />}
+          {activeTab === "orders" && <OrdersTable isoYear={isoYear} isoWeek={isoWeek} />}
+        </div>
+      </div>
+      <div className="mt-10 text-xs text-gray-400 mb-4">© {new Date().getFullYear()} CHECKito Lunch</div>
     </div>
   );
 }

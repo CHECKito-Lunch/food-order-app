@@ -47,7 +47,7 @@ export default function UsersTable() {
     setEditing(user);
     setEditForm({
       ...user,
-      location: user.location || LOCATION_OPTIONS[0], // Defaultwert, falls leer
+      location: user.location || LOCATION_OPTIONS[0],
       password: ""
     });
   }
@@ -113,22 +113,25 @@ export default function UsersTable() {
     await fetchUsers();
   }
 
-  if (loading) return <div>Lädt...</div>;
+  if (loading) return <div className="text-center py-12 text-lg">Lädt...</div>;
 
   // Filter users nach Suchtext
   const filtered = users.filter(u =>
     (u.email?.toLowerCase().includes(search.toLowerCase()) ||
-     u.first_name?.toLowerCase().includes(search.toLowerCase()) ||
-     u.last_name?.toLowerCase().includes(search.toLowerCase()) ||
-     u.location?.toLowerCase().includes(search.toLowerCase()) ||
-     u.role?.toLowerCase().includes(search.toLowerCase()))
+      u.first_name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.last_name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.location?.toLowerCase().includes(search.toLowerCase()) ||
+      u.role?.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-2">Userverwaltung</h2>
-      <div className="flex gap-4 mb-2">
-        <button onClick={() => { setEditForm({ location: LOCATION_OPTIONS[0] }); setShowCreate(true); }} className="bg-blue-600 text-white px-3 py-1 rounded">
+      <h2 className="text-xl font-bold mb-2 text-[#0056b3]">Userverwaltung</h2>
+      <div className="flex flex-col md:flex-row gap-2 md:gap-4 mb-3">
+        <button
+          onClick={() => { setEditForm({ location: LOCATION_OPTIONS[0] }); setShowCreate(true); }}
+          className="bg-[#0056b3] hover:bg-blue-800 text-white font-semibold px-4 py-2 rounded-full shadow w-full md:w-auto"
+        >
           Neuen User anlegen
         </button>
         <input
@@ -136,63 +139,69 @@ export default function UsersTable() {
           placeholder="Suche nach Name, Email, Rolle..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="border p-2 rounded flex-1 min-w-[200px]"
+          className="border border-blue-200 p-2 rounded-lg flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
       </div>
-      <table className="min-w-full border">
-        <thead>
-          <tr>
-            <th className="p-2 border">E-Mail</th>
-            <th className="p-2 border">Vorname</th>
-            <th className="p-2 border">Nachname</th>
-            <th className="p-2 border">Location</th>
-            <th className="p-2 border">Rolle</th>
-            <th className="p-2 border">Aktionen</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map(u => (
-            <tr key={u.id}>
-              <td className="border p-2">{u.email}</td>
-              <td className="border p-2">{u.first_name}</td>
-              <td className="border p-2">{u.last_name}</td>
-              <td className="border p-2">{u.location}</td>
-              <td className="border p-2">{u.role}</td>
-              <td className="border p-2 flex gap-2">
-                <button onClick={() => handleEdit(u)} className="text-blue-600 underline">Bearbeiten</button>
-                <button onClick={() => handleDelete(u)} className="text-red-600 underline">Löschen</button>
-              </td>
+      <div className="overflow-x-auto rounded-2xl border border-blue-100 shadow bg-white">
+        <table className="min-w-full divide-y divide-blue-100">
+          <thead>
+            <tr className="bg-blue-50">
+              <th className="p-3 font-semibold text-[#0056b3]">E-Mail</th>
+              <th className="p-3 font-semibold text-[#0056b3]">Vorname</th>
+              <th className="p-3 font-semibold text-[#0056b3]">Nachname</th>
+              <th className="p-3 font-semibold text-[#0056b3]">Location</th>
+              <th className="p-3 font-semibold text-[#0056b3]">Rolle</th>
+              <th className="p-3 font-semibold text-[#0056b3]">Aktionen</th>
             </tr>
-          ))}
-          {filtered.length === 0 && (
-            <tr>
-              <td colSpan={6} className="p-4 text-gray-400 text-center">Keine passenden User gefunden.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map(u => (
+              <tr key={u.id} className="hover:bg-blue-50">
+                <td className="border-t p-3">{u.email}</td>
+                <td className="border-t p-3">{u.first_name}</td>
+                <td className="border-t p-3">{u.last_name}</td>
+                <td className="border-t p-3">{u.location}</td>
+                <td className="border-t p-3">{u.role}</td>
+                <td className="border-t p-3 flex flex-col gap-1 md:flex-row">
+                  <button onClick={() => handleEdit(u)} className="text-[#0056b3] hover:underline font-semibold">
+                    Bearbeiten
+                  </button>
+                  <button onClick={() => handleDelete(u)} className="text-red-600 hover:underline font-semibold">
+                    Löschen
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-5 text-gray-400 text-center">Keine passenden User gefunden.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* Bearbeiten Modal */}
       {editing && (
-        <div className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-30 flex items-center justify-center z-20">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
-            <h3 className="font-bold text-lg mb-4">User bearbeiten</h3>
-            <input value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="mb-2 w-full p-1 border" placeholder="E-Mail" />
-            <input value={editForm.first_name} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Vorname" />
-            <input value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Nachname" />
-            <select value={editForm.location || LOCATION_OPTIONS[0]} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-1 border">
+        <div className="fixed inset-0 z-30 bg-black bg-opacity-40 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-auto border border-blue-100">
+            <h3 className="font-bold text-lg mb-4 text-[#0056b3]">User bearbeiten</h3>
+            <input value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="E-Mail" />
+            <input value={editForm.first_name} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="Vorname" />
+            <input value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="Nachname" />
+            <select value={editForm.location || LOCATION_OPTIONS[0]} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded">
               {LOCATION_OPTIONS.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
-            <select value={editForm.role || "user"} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="mb-2 w-full p-1 border">
+            <select value={editForm.role || "user"} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded">
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
-            <input value={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} type="text" className="mb-2 w-full p-1 border" placeholder="Neues Passwort (optional)" />
+            <input value={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} type="text" className="mb-2 w-full p-2 border border-blue-200 rounded" placeholder="Neues Passwort (optional)" />
             <div className="flex gap-2 mt-2">
-              <button onClick={handleSave} className="bg-green-600 text-white px-3 py-1 rounded">Speichern</button>
-              <button onClick={() => setEditing(null)} className="text-red-600">Abbrechen</button>
+              <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-green-700 shadow">Speichern</button>
+              <button onClick={() => setEditing(null)} className="text-red-600 font-semibold">Abbrechen</button>
             </div>
           </div>
         </div>
@@ -200,25 +209,25 @@ export default function UsersTable() {
 
       {/* Neuen User anlegen Modal */}
       {showCreate && (
-        <div className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-30 flex items-center justify-center z-20">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
-            <h3 className="font-bold text-lg mb-4">User anlegen</h3>
-            <input value={editForm.email || ""} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="mb-2 w-full p-1 border" placeholder="E-Mail" />
-            <input value={editForm.first_name || ""} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Vorname" />
-            <input value={editForm.last_name || ""} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} className="mb-2 w-full p-1 border" placeholder="Nachname" />
-            <select value={editForm.location || LOCATION_OPTIONS[0]} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-1 border">
+        <div className="fixed inset-0 z-30 bg-black bg-opacity-40 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-auto border border-blue-100">
+            <h3 className="font-bold text-lg mb-4 text-[#0056b3]">User anlegen</h3>
+            <input value={editForm.email || ""} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="E-Mail" />
+            <input value={editForm.first_name || ""} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="Vorname" />
+            <input value={editForm.last_name || ""} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="Nachname" />
+            <select value={editForm.location || LOCATION_OPTIONS[0]} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded">
               {LOCATION_OPTIONS.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
-            <select value={editForm.role || "user"} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="mb-2 w-full p-1 border">
+            <select value={editForm.role || "user"} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded">
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
-            <input value={editForm.password || ""} onChange={e => setEditForm({ ...editForm, password: e.target.value })} type="text" className="mb-2 w-full p-1 border" placeholder="Passwort" />
+            <input value={editForm.password || ""} onChange={e => setEditForm({ ...editForm, password: e.target.value })} type="text" className="mb-2 w-full p-2 border border-blue-200 rounded" placeholder="Passwort" />
             <div className="flex gap-2 mt-2">
-              <button onClick={handleCreate} className="bg-green-600 text-white px-3 py-1 rounded">Anlegen</button>
-              <button onClick={() => setShowCreate(false)} className="text-red-600">Abbrechen</button>
+              <button onClick={handleCreate} className="bg-green-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-green-700 shadow">Anlegen</button>
+              <button onClick={() => setShowCreate(false)} className="text-red-600 font-semibold">Abbrechen</button>
             </div>
           </div>
         </div>
