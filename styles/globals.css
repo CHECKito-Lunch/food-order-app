@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+
 :root {
   --background: #f7faff; /* CHECK24-hellblau */
   --foreground: #1a2947; /* dunkles CHECK24-blau */
