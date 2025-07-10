@@ -131,7 +131,7 @@ export default function Dashboard() {
       <div className="rounded-2xl shadow-md border border-blue-100 bg-white flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-6 md:p-10">
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-[#0056b3] mb-3 md:mb-2 leading-tight">
-            Menü-Bestellung
+            CHECKito Lunch
           </h1>
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center text-base text-gray-700">
             {/* Jahr */}
@@ -232,7 +232,7 @@ export default function Dashboard() {
           const tagDatum = dayjs().year(selectedYear).week(selectedWeek).day(day);
           return (
             <div key={day} className="border border-blue-100 rounded-2xl shadow bg-white p-5 md:p-8">
-              <div className="font-semibold text-lg md:text-xl mb-3 text-[#0056b3] flex flex-wrap items-center gap-3">
+              <div className="text-xl md:text-2xl font-bold text-[#0056b3] mb-3 flex flex-wrap items-center gap-3">
                 {dayName}
                 <span className="text-xs md:text-base text-gray-500 font-normal">
                   ({tagDatum.format("DD.MM.YYYY")})
