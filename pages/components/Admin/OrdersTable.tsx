@@ -1,17 +1,31 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 
+// Mapping für Wochentags-Nummer zu String
+const WEEKDAYS: Record<number, string> = {
+  1: 'Montag',
+  2: 'Dienstag',
+  3: 'Mittwoch',
+  4: 'Donnerstag',
+  5: 'Freitag'
+};
+
+// Mapping für Caterer-ID zu Name
+const CATERER_OPTIONS: Record<number, string> = {
+  1: 'Dean&David',
+  2: 'Merkel',
+  3: 'Bloi'
+};
+
 interface OrderAdmin {
   id: number;
   first_name: string;
   last_name: string;
-  location: string;
+  iso_week: number | string;
+  day_of_week: number | string;
+  menu_number: number | string;
   menu_description: string;
-  week_menu_id: number;
-  iso_week: number;
-  iso_year: number;
-  menu_number: number;
-  order_deadline: string;
+  caterer_id: number | null;
 }
 
 export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, isoWeek: number }) {
@@ -27,10 +41,15 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
           id,
           first_name,
           last_name,
-          location,
-          menu_description,
           week_menu_id,
-          week_menus(menu_number, order_deadline, iso_week, iso_year)
+          week_menus(
+            menu_number,
+            menu_description,
+            caterer_id,
+            day_of_week,
+            iso_week,
+            iso_year
+          )
         `)
         .eq('week_menus.iso_week', isoWeek)
         .eq('week_menus.iso_year', isoYear);
@@ -42,18 +61,20 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         return;
       }
 
-      const formatted: OrderAdmin[] = (data ?? []).map((row: any) => ({
-        id: row.id,
-        first_name: row.first_name ?? "",
-        last_name: row.last_name ?? "",
-        location: row.location ?? "",
-        menu_description: row.menu_description ?? "",
-        week_menu_id: row.week_menu_id,
-        menu_number: row.week_menus?.menu_number ?? 0,
-        order_deadline: row.week_menus?.order_deadline ?? "",
-        iso_week: row.week_menus?.iso_week ?? 0,
-        iso_year: row.week_menus?.iso_year ?? 0,
-      }));
+      // Formatieren und absichern
+      const formatted: OrderAdmin[] = (data ?? []).map((row: any) => {
+        const wm = row.week_menus ?? {};
+        return {
+          id: row.id,
+          first_name: row.first_name ?? "",
+          last_name: row.last_name ?? "",
+          iso_week: wm.iso_week ?? "",
+          day_of_week: wm.day_of_week ?? "",
+          menu_number: wm.menu_number ?? "",
+          menu_description: wm.menu_description ?? "",
+          caterer_id: wm.caterer_id ?? null
+        };
+      });
 
       setOrders(formatted);
       setLoading(false);
@@ -63,16 +84,15 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
   }, [isoYear, isoWeek]);
 
   function exportCSV() {
-    const header = ["Vorname", "Nachname", "Location", "KW", "Jahr", "Nr.", "Gericht", "Deadline"];
+    const header = ["Vorname", "Nachname", "KW", "Tag", "Nr.", "Gericht", "Caterer"];
     const rows = orders.map(o => [
       o.first_name,
       o.last_name,
-      o.location,
       o.iso_week,
-      o.iso_year,
+      typeof o.day_of_week === "number" ? WEEKDAYS[o.day_of_week] : WEEKDAYS[Number(o.day_of_week)] ?? "",
       o.menu_number,
       o.menu_description,
-      new Date(o.order_deadline).toLocaleString("de"),
+      o.caterer_id ? CATERER_OPTIONS[o.caterer_id] ?? o.caterer_id : ""
     ]);
     const csv = [header, ...rows].map(r => r.join(";")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -106,12 +126,11 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
               <tr className="bg-blue-50 dark:bg-gray-900">
                 <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Vorname</th>
                 <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Nachname</th>
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Location</th>
                 <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">KW</th>
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Jahr</th>
+                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Tag</th>
                 <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Nr.</th>
                 <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Gericht</th>
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Deadline</th>
+                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Caterer</th>
               </tr>
             </thead>
             <tbody>
@@ -119,17 +138,22 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
                 <tr key={o.id} className="hover:bg-blue-50 dark:hover:bg-gray-700">
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.first_name}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.last_name}</td>
-                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.location}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.iso_week}</td>
-                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.iso_year}</td>
+                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">
+                    {typeof o.day_of_week === "number"
+                      ? WEEKDAYS[o.day_of_week]
+                      : WEEKDAYS[Number(o.day_of_week)] ?? ""}
+                  </td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.menu_number}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.menu_description}</td>
-                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">{new Date(o.order_deadline).toLocaleString('de')}</td>
+                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">
+                    {o.caterer_id ? CATERER_OPTIONS[o.caterer_id] ?? o.caterer_id : ""}
+                  </td>
                 </tr>
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-5 text-gray-400 dark:text-gray-500 text-center">
+                  <td colSpan={7} className="p-5 text-gray-400 dark:text-gray-500 text-center">
                     Keine Bestellungen gefunden.
                   </td>
                 </tr>
