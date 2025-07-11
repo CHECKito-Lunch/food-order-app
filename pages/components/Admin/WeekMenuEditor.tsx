@@ -50,19 +50,22 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
   // --- Menü-Laden ausgelagert ---
   const reloadMenus = async () => {
-    const { data: loaded } = await supabase
-      .from('week_menus')
-      .select('*')
-      .eq('iso_year', isoYear)
-      .eq('iso_week', isoWeek);
+  const { data: loaded } = await supabase
+    .from('week_menus')
+    .select('*')
+    .eq('iso_year', isoYear)
+    .eq('iso_week', isoWeek);
 
-    const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-    (loaded || []).forEach((m: any) => {
-      grouped[m.day_of_week].push(m);
-    });
-    setMenus(grouped);
-    setUndoStack([]);
-  };
+  const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+  (loaded || []).forEach((m: any) => {
+    const day = Number(m.day_of_week);
+    if (grouped[day]) {
+      grouped[day].push(m);
+    }
+  });
+  setMenus(grouped);
+  setUndoStack([]);
+};
 
   // Initiales Laden
   useEffect(() => {
