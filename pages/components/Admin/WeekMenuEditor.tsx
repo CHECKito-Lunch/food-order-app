@@ -58,9 +58,6 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       .eq('iso_year', isoYear)
       .eq('iso_week', isoWeek);
 
-    // Debug-Ausgabe ins Browser-Log!
-    console.log("Lade Menüs von Supabase:", loaded, "Fehler:", error);
-
     const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
     (loaded || []).forEach((m: any) => {
       const day = Number(m.day_of_week);
@@ -71,11 +68,8 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
             ? new Date(m.order_deadline).toISOString().slice(0, 16)
             : ''
         });
-      } else {
-        console.warn("Unbekannter Wochentag in DB:", m.day_of_week, m);
       }
     });
-    console.log("Gruppierte Menüs:", grouped);
     setMenus(grouped);
     setUndoStack([]);
     setReloadTime(new Date().toLocaleTimeString('de-DE'));
@@ -170,6 +164,25 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       return;
     }
     alert('Woche gespeichert');
+    reloadMenus();
+  };
+
+  // <<< NEU: Woche leeren (ALLE Menüs der Woche löschen) >>>
+  const handleClearWeek = async () => {
+    if (!window.confirm('Willst du wirklich die ganze Woche löschen? Alle Menüs dieser Woche werden entfernt!')) return;
+    // Lösche alle Menüs dieser Woche aus der DB:
+    const { error } = await supabase
+      .from('week_menus')
+      .delete()
+      .eq('iso_year', isoYear)
+      .eq('iso_week', isoWeek);
+    if (error) {
+      alert('Fehler beim Löschen: ' + error.message);
+      return;
+    }
+    setMenus({ 1: [], 2: [], 3: [], 4: [], 5: [] });
+    setUndoStack([]);
+    alert('Woche wurde komplett geleert!');
     reloadMenus();
   };
 
@@ -418,7 +431,13 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
         ))}
       </div>
 
-      <div className="flex justify-end mt-3">
+      <div className="flex justify-end mt-3 gap-2">
+        <button
+          onClick={handleClearWeek}
+          className="bg-red-700 hover:bg-red-800 text-white font-semibold px-4 py-2 rounded-xl text-sm shadow transition"
+        >
+          Woche leeren
+        </button>
         <button
           onClick={handleSave}
           className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-xl text-sm shadow transition"
