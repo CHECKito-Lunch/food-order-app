@@ -64,19 +64,22 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         return;
       }
 
-      const formatted: OrderAdmin[] = (data ?? []).map((row: any) => {
-        const wm = row.week_menus ?? {};
-        return {
-          id: row.id,
-          first_name: row.first_name ?? "",
-          last_name: row.last_name ?? "",
-          iso_week: wm.iso_week ?? "",
-          day_of_week: wm.day_of_week ?? "",
-          menu_number: wm.menu_number ?? "",
-          description: wm.description ?? "",
-          caterer_id: wm.caterer_id ?? null,
-        };
-      });
+      // --- Nur Orders mit zugehörigem Menü übernehmen ---
+      const formatted: OrderAdmin[] = (data ?? [])
+        .filter((row: any) => row.week_menus && row.week_menus.menu_number) // NUR Orders mit Menü!
+        .map((row: any) => {
+          const wm = row.week_menus ?? {};
+          return {
+            id: row.id,
+            first_name: row.first_name ?? "",
+            last_name: row.last_name ?? "",
+            iso_week: wm.iso_week ?? "",
+            day_of_week: wm.day_of_week ?? "",
+            menu_number: wm.menu_number ?? "",
+            description: wm.description ?? "",
+            caterer_id: wm.caterer_id ?? null,
+          };
+        });
 
       setOrders(formatted);
       setLoading(false);
