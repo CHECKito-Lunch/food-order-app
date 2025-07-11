@@ -48,24 +48,34 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   const [editPresetName, setEditPresetName] = useState('');
   const [confirm, setConfirm] = useState<{ action: string, payload?: any } | null>(null);
 
+  // Reload-Time State
+  const [reloadTime, setReloadTime] = useState('');
+
   // --- Menü-Laden ausgelagert ---
   const reloadMenus = async () => {
-  const { data: loaded } = await supabase
-    .from('week_menus')
-    .select('*')
-    .eq('iso_year', isoYear)
-    .eq('iso_week', isoWeek);
+    const { data: loaded } = await supabase
+      .from('week_menus')
+      .select('*')
+      .eq('iso_year', isoYear)
+      .eq('iso_week', isoWeek);
 
-  const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-  (loaded || []).forEach((m: any) => {
-    const day = Number(m.day_of_week);
-    if (grouped[day]) {
-      grouped[day].push(m);
-    }
-  });
-  setMenus(grouped);
-  setUndoStack([]);
-};
+    const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    (loaded || []).forEach((m: any) => {
+      const day = Number(m.day_of_week);
+      if (grouped[day]) {
+        grouped[day].push({
+          ...m,
+          // Datetime korrekt für <input type="datetime-local" />
+          order_deadline: m.order_deadline
+            ? new Date(m.order_deadline).toISOString().slice(0, 16)
+            : ''
+        });
+      }
+    });
+    setMenus(grouped);
+    setUndoStack([]);
+    setReloadTime(new Date().toLocaleTimeString('de-DE'));
+  };
 
   // Initiales Laden
   useEffect(() => {
@@ -98,7 +108,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
           menu_number: prev[d].length + 1,
           description: '',
           caterer_id: CATERER_OPTIONS[0].id,
-          order_deadline: '' // NEU: Leeres Feld, User muss setzen
+          order_deadline: '' // Leeres Feld
         }
       ]
     }));
@@ -139,7 +149,6 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
   // Speichern/Upsert (Bestellfristen bleiben erhalten!)
   const handleSave = async () => {
-    // Menüs mit allen Feldern, keine Deadlines überschreiben!
     const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
       arr.map(m => ({
         ...m,
@@ -163,7 +172,6 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   // Preset speichern (Deadlines nicht mitspeichern!)
   const handleSavePreset = async () => {
     if (!presetName) return alert("Bitte Preset-Namen eingeben!");
-    // Deadlines beim Preset-Speichern auf '' setzen
     const cleanMenus: MenuPerDay = {};
     Object.entries(menus).forEach(([d, arr]) => {
       cleanMenus[Number(d)] = arr.map(m => ({
@@ -194,7 +202,6 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     const preset = presets.find(p => p.id === selectedPresetId);
     if (preset) {
       pushUndo();
-      // Deadlines nach Laden explizit leeren
       const loadedMenus: MenuPerDay = {};
       Object.entries(preset.menus).forEach(([d, arr]) => {
         loadedMenus[Number(d)] = arr.map(m => ({
@@ -291,11 +298,21 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-bold mb-1 text-[#0056b3] dark:text-blue-200">Menü KW {isoWeek}/{isoYear}</h2>
-      {/* ...Rest bleibt gleich wie im Style-Update oben! ... */}
-      {/* (kopiere hier den Button/Input-Teil & Table aus der vorigen kompakten Admin-Variante) */}
-      {/* ... */}
-      {/* --- Copy & Paste ab dem letzten Commit-Style --- */}
-      {/* --- ... (diesen Teil von oben übernehmen) ... --- */}
+
+      {/* NEU: Reload Button */}
+      <div className="flex items-center gap-2 mb-2">
+        <button
+          onClick={reloadMenus}
+          className="bg-blue-500 hover:bg-blue-700 text-white font-semibold px-3 py-1.5 rounded-full text-xs shadow transition"
+        >
+          Menüs neu laden
+        </button>
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          Letztes Laden: {reloadTime}
+        </span>
+      </div>
+
+      {/* ...Preset Bar und restlicher Code bleibt gleich... */}
       <div className="flex flex-wrap gap-1 mb-2">
         <input
           value={presetName}
@@ -337,8 +354,8 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
           Export als CSV
         </button>
       </div>
-      {/* ...Preset Edit Liste, Tages-Menüs usw wie oben... */}
-      {/* ...dein restlicher komprimierter Style bleibt erhalten! */}
+
+      {/* ...Preset Edit Liste, Tages-Menüs usw wie gehabt... */}
       <ConfirmModal />
     </div>
   );
