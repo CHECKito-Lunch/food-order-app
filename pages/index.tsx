@@ -127,7 +127,7 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-3xl mx-auto px-3 py-6 md:px-6 md:py-12 space-y-10 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
-      {/* Header */}
+            {/* Header */}
       <div className="rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-4 md:p-6">
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-1 leading-tight">
@@ -138,7 +138,7 @@ export default function Dashboard() {
             <label className="flex items-center gap-2">
               <span>Jahr:</span>
               <select
-                className="border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:text-gray-100 text-sm"
+                className="border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 value={selectedYear}
                 onChange={e => setSelectedYear(Number(e.target.value))}
               >
@@ -151,7 +151,7 @@ export default function Dashboard() {
             <label className="flex items-center gap-2">
               <span>Kalenderwoche:</span>
               <select
-                className="border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:text-gray-100 text-sm"
+                className="border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 value={selectedWeek}
                 onChange={e => setSelectedWeek(Number(e.target.value))}
               >
@@ -162,14 +162,27 @@ export default function Dashboard() {
             </label>
           </div>
         </div>
-        <button
-          className="w-full sm:w-auto mt-4 md:mt-0 bg-[#0056b3] dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-700 transition text-white text-sm px-6 py-2 rounded-full shadow font-bold"
-          onClick={async () => {
-            await supabase.auth.signOut();
-            window.location.reload();
-          }}
-        >Logout</button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 mt-4 md:mt-0 w-full sm:w-auto">
+          {/* ---- Admin Button ---- */}
+          {profile?.role === "admin" && (
+            <button
+              className="w-full sm:w-auto bg-orange-600 dark:bg-orange-700 hover:bg-orange-700 dark:hover:bg-orange-800 transition text-white text-sm px-6 py-2 rounded-full shadow font-bold"
+              onClick={() => window.location.href = "/admin"}
+            >
+              Admin Dashboard
+            </button>
+          )}
+          {/* ---- Logout Button ---- */}
+          <button
+            className="w-full sm:w-auto bg-[#0056b3] dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-700 transition text-white text-sm px-6 py-2 rounded-full shadow font-bold"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              window.location.reload();
+            }}
+          >Logout</button>
+        </div>
       </div>
+
 
       {/* Profil anzeigen/bearbeiten */}
       <div className="border border-blue-100 dark:border-gray-700 rounded-2xl shadow bg-white dark:bg-gray-800 p-4 md:p-6">
