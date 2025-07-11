@@ -9,7 +9,7 @@ import Head from 'next/head';
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <SessionContextProvider supabaseClient={supabase}>
+    <SessionContextProvider supabaseClient={supabase as any}>
       <Head>
         <title>CHECKito Lunch</title>
         <meta name="description" content="CHECKito Lunch – Dein Tool für Essensbestellungen und Menüverwaltung." />
