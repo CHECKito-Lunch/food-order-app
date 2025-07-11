@@ -303,7 +303,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     <div className="space-y-6">
       <h2 className="text-lg font-bold mb-1 text-[#0056b3] dark:text-blue-200">Menü KW {isoWeek}/{isoYear}</h2>
 
-      {/* NEU: Reload Button */}
+      {/* Reload Button */}
       <div className="flex items-center gap-2 mb-2">
         <button
           onClick={reloadMenus}
@@ -316,7 +316,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
         </span>
       </div>
 
-      {/* ...Preset Bar und restlicher Code bleibt gleich... */}
+      {/* Preset Bar */}
       <div className="flex flex-wrap gap-1 mb-2">
         <input
           value={presetName}
@@ -359,7 +359,74 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
         </button>
       </div>
 
-      {/* ...Preset Edit Liste, Tages-Menüs usw wie gehabt... */}
+      {/* --- NEU: Menüs Rendern pro Tag --- */}
+      <div className="space-y-4">
+        {Object.entries(WEEKDAYS).map(([d, name]) => (
+          <div key={d} className="border border-blue-100 dark:border-gray-700 rounded-xl p-2 bg-white dark:bg-gray-900">
+            <div className="flex items-center justify-between mb-1">
+              <div className="font-semibold text-[#0056b3] dark:text-blue-200">{name}</div>
+              <button
+                onClick={() => handleAddMenu(Number(d))}
+                className="bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
+              >
+                + Menü
+              </button>
+            </div>
+            <div className="space-y-2">
+              {(menus[Number(d)]?.length > 0)
+                ? menus[Number(d)].map((m, i) => (
+                  <div key={i} className="flex flex-col md:flex-row gap-2 items-start md:items-center bg-blue-50 dark:bg-gray-900 px-2 py-2 rounded-lg">
+                    <input
+                      type="number"
+                      value={m.menu_number}
+                      onChange={e => handleMenuChange(Number(d), i, { menu_number: Number(e.target.value) })}
+                      className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 w-16 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
+                    />
+                    <input
+                      type="text"
+                      value={m.description}
+                      onChange={e => handleMenuChange(Number(d), i, { description: e.target.value })}
+                      className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 flex-1 min-w-[100px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
+                      placeholder="Bezeichnung"
+                    />
+                    <select
+                      value={m.caterer_id}
+                      onChange={e => handleMenuChange(Number(d), i, { caterer_id: Number(e.target.value) })}
+                      className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
+                    >
+                      {CATERER_OPTIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <input
+                      type="datetime-local"
+                      value={m.order_deadline}
+                      onChange={e => handleMenuChange(Number(d), i, { order_deadline: e.target.value })}
+                      className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 w-[170px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
+                    />
+                    <button
+                      onClick={() => handleRemoveMenu(Number(d), i)}
+                      className="bg-red-600 hover:bg-red-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
+                      title="Menü löschen"
+                    >
+                      X
+                    </button>
+                  </div>
+                ))
+                : <div className="text-xs text-gray-400">Kein Menü für diesen Tag.</div>
+              }
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-end mt-3">
+        <button
+          onClick={handleSave}
+          className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-xl text-sm shadow transition"
+        >
+          Woche speichern
+        </button>
+      </div>
+
       <ConfirmModal />
     </div>
   );
