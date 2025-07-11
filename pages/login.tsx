@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 export default function Login() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -12,17 +13,21 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword(form);
     if (error) {
       alert(error.message);
+      setLoading(false);
     } else {
       const { data: { user } } = await supabase.auth.getUser();
       const role = user?.user_metadata?.role || "user";
-      if (role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/index");
-      }
+      setTimeout(() => {
+        if (role === "admin") {
+          router.push("/admin");
+        } else {
+          router.push("/");
+        }
+      }, 300); // 300ms "Animation"/UX delay
     }
   };
 
@@ -32,7 +37,7 @@ export default function Login() {
         {/* LOGO */}
         <div className="flex justify-center mb-5">
           <img
-            src="/CHECK24_App_Icon_NNova-Blue_rounded.png" // <-- Das ist der Pfad zu deiner Datei im public-Ordner
+            src="/CHECK24_App_Icon_NNova-Blue_rounded.png"
             alt="CHECK24 Logo"
             className="w-16 h-16 md:w-20 md:h-20 rounded-xl"
             style={{ objectFit: "contain" }}
@@ -73,9 +78,12 @@ export default function Login() {
           </div>
           <button
             type="submit"
-            className="w-full bg-[#0056b3] dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-700 text-white py-2 rounded-full font-bold shadow-md transition text-sm"
+            disabled={loading}
+            className={`w-full bg-[#0056b3] dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-700 text-white py-2 rounded-full font-bold shadow-md transition text-sm ${
+              loading ? "opacity-50 cursor-wait" : ""
+            }`}
           >
-            Einloggen
+            {loading ? "Einloggen ..." : "Einloggen"}
           </button>
         </form>
       </div>
