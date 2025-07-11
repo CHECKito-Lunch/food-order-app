@@ -25,9 +25,10 @@ export default function Login() {
         if (role === "admin") {
           router.push("/admin");
         } else {
-          router.push("/");
+          // Harte Weiterleitung, damit die Session wirklich neu geladen wird!
+          window.location.href = "/";
         }
-      }, 300); // 300ms "Animation"/UX delay
+      }, 300); // optional UX delay
     }
   };
 
