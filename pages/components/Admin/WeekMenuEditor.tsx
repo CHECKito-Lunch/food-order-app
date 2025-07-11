@@ -35,7 +35,6 @@ type Preset = {
 
 // === Hilfsfunktion: Datum zu Wochentag (Mo–Fr) der ISO-KW berechnen ===
 function getDateOfISOWeek(isoWeek: number, isoYear: number, isoWeekday: number): Date {
-  // isoWeekday: 1=Montag...7=Sonntag
   const simple = new Date(isoYear, 0, 1 + (isoWeek - 1) * 7);
   const dow = simple.getDay();
   let ISOweekStart = simple;
@@ -64,7 +63,6 @@ function getDefaultDeadlineForCaterer(caterer_id: number, isoWeek: number, isoYe
     deadlineDate.setDate(menuDate.getDate() - 1);
     deadlineDate.setHours(12, 0, 0, 0);
   }
-  // Format für datetime-local: yyyy-MM-ddTHH:mm
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${deadlineDate.getFullYear()}-${pad(deadlineDate.getMonth() + 1)}-${pad(deadlineDate.getDate())}T${pad(deadlineDate.getHours())}:00`;
 }
@@ -359,6 +357,21 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     URL.revokeObjectURL(url);
   };
 
+  // --- Neu: Button um Bestellfristen für alle Menüs neu zu setzen ---
+  const handleReloadDeadlines = () => {
+    pushUndo();
+    setMenus(prev => {
+      const newMenus: MenuPerDay = { ...prev };
+      Object.keys(newMenus).forEach((d) => {
+        newMenus[Number(d)] = newMenus[Number(d)].map(m => ({
+          ...m,
+          order_deadline: getDefaultDeadlineForCaterer(m.caterer_id, isoWeek, isoYear, Number(d))
+        }));
+      });
+      return { ...newMenus };
+    });
+  };
+
   // --- Confirm Modal ---
   const ConfirmModal = () => (
     confirm && (
@@ -441,6 +454,13 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
           className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
         >
           Export als CSV
+        </button>
+        {/* === NEUER BUTTON FÜR DEADLINES === */}
+        <button
+          onClick={handleReloadDeadlines}
+          className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
+        >
+          Bestellfristen nachladen
         </button>
       </div>
 
