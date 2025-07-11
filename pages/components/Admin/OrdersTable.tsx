@@ -42,7 +42,9 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
           first_name,
           last_name,
           week_menu_id,
-          week_menus(
+          iso_week,
+          iso_year,
+          week_menus (
             menu_number,
             description,
             caterer_id,
@@ -51,10 +53,11 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
             iso_year
           )
         `)
-        .eq('week_menus.iso_week', isoWeek)
-        .eq('week_menus.iso_year', isoYear);
+        // Abgleich direkt auf `orders.iso_week/iso_year`, **nicht** auf den Join!
+        .eq('iso_week', isoWeek)
+        .eq('iso_year', isoYear);
 
-      // Debug-Ausgaben einbauen:
+      // Debug-Ausgaben:
       console.log("[DEBUG] Supabase data:", data);
       console.log("[DEBUG] Supabase error:", error);
       console.log("[DEBUG] Suchparameter:", { isoYear, isoWeek });
@@ -66,18 +69,19 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         return;
       }
 
-      // Formatieren und absichern
+      // Formatieren
       const formatted: OrderAdmin[] = (data ?? []).map((row: any) => {
+        // Prio: Direkt aus orders, dann fallback auf week_menus (theoretisch redundant)
         const wm = row.week_menus ?? {};
         return {
           id: row.id,
           first_name: row.first_name ?? "",
           last_name: row.last_name ?? "",
-          iso_week: wm.iso_week ?? "",
+          iso_week: row.iso_week ?? wm.iso_week ?? "",
           day_of_week: wm.day_of_week ?? "",
           menu_number: wm.menu_number ?? "",
           description: wm.description ?? "",
-          caterer_id: wm.caterer_id ?? null
+          caterer_id: wm.caterer_id ?? null,
         };
       });
 
