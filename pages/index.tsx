@@ -274,9 +274,12 @@ export default function Dashboard() {
             className="w-full sm:w-auto bg-[#0056b3] dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-700 transition text-white text-sm px-6 py-2 rounded-full shadow font-bold"
             onClick={async () => {
               await supabase.auth.signOut();
-              window.location.reload();
+              setUser(null);
+              router.replace('/login');
             }}
-          >Logout</button>
+          >
+            Logout
+          </button>
         </div>
       </div>
 
