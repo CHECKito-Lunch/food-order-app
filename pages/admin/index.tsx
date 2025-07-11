@@ -41,25 +41,25 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-blue-50 dark:bg-gray-900 flex flex-col items-center">
-      <div className="w-full max-w-4xl mx-auto mt-10 px-2 md:px-0">
+      <div className="w-full max-w-7xl mx-auto mt-6 px-1 md:px-2">
         {/* Header */}
-        <div className="rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 mb-8 p-4 md:p-6 bg-white dark:bg-gray-800 flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4 w-full justify-between">
-            <h1 className="text-2xl md:text-3xl font-bold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-0 tracking-tight">
+        <div className="rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 mb-8 p-3 md:p-4 bg-white dark:bg-gray-800 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-1 md:flex-row md:items-center md:gap-4 w-full justify-between">
+            <h1 className="text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-0 tracking-tight">
               Admin Dashboard
             </h1>
             <button
               onClick={() => router.push('/index')}
-              className="text-sm px-4 py-2 rounded-full font-semibold bg-blue-100 text-[#0056b3] hover:bg-blue-200 dark:bg-gray-700 dark:text-blue-100 dark:hover:bg-gray-600 shadow transition"
+              className="text-xs px-2.5 py-1.5 rounded-full font-semibold bg-blue-100 text-[#0056b3] hover:bg-blue-200 dark:bg-gray-700 dark:text-blue-100 dark:hover:bg-gray-600 shadow transition"
               title="Zur Useransicht"
             >
               Zur Useransicht
             </button>
           </div>
-          <div className="flex gap-2 mt-2 md:mt-0">
+          <div className="flex gap-1 mt-2 md:mt-0">
             <button
               onClick={() => setActiveTab("users")}
-              className={`text-sm px-3 py-1.5 rounded-full font-semibold transition ${
+              className={`text-xs px-2 py-1 rounded-full font-semibold transition ${
                 activeTab === "users"
                   ? "bg-[#0056b3] text-white shadow"
                   : "bg-blue-100 text-[#0056b3] hover:bg-blue-200 dark:bg-gray-700 dark:text-blue-100 dark:hover:bg-gray-600"
@@ -69,7 +69,7 @@ export default function Admin() {
             </button>
             <button
               onClick={() => setActiveTab("menu")}
-              className={`text-sm px-3 py-1.5 rounded-full font-semibold transition ${
+              className={`text-xs px-2 py-1 rounded-full font-semibold transition ${
                 activeTab === "menu"
                   ? "bg-[#0056b3] text-white shadow"
                   : "bg-blue-100 text-[#0056b3] hover:bg-blue-200 dark:bg-gray-700 dark:text-blue-100 dark:hover:bg-gray-600"
@@ -79,7 +79,7 @@ export default function Admin() {
             </button>
             <button
               onClick={() => setActiveTab("orders")}
-              className={`text-sm px-3 py-1.5 rounded-full font-semibold transition ${
+              className={`text-xs px-2 py-1 rounded-full font-semibold transition ${
                 activeTab === "orders"
                   ? "bg-[#0056b3] text-white shadow"
                   : "bg-blue-100 text-[#0056b3] hover:bg-blue-200 dark:bg-gray-700 dark:text-blue-100 dark:hover:bg-gray-600"
@@ -92,17 +92,17 @@ export default function Admin() {
 
         {/* Kalenderwoche-Auswahl nur für Menü/Orders */}
         {activeTab !== "users" && (
-          <div className="flex flex-wrap gap-4 items-center mb-6 bg-blue-50 dark:bg-gray-800 p-3 rounded-xl border border-blue-100 dark:border-gray-700 shadow-inner">
-            <label className="flex items-center gap-1 text-gray-700 dark:text-gray-200">
+          <div className="flex flex-wrap gap-3 items-center mb-6 bg-blue-50 dark:bg-gray-800 p-2 rounded-xl border border-blue-100 dark:border-gray-700 shadow-inner">
+            <label className="flex items-center gap-1 text-gray-700 dark:text-gray-200 text-xs">
               Jahr:
               <input
                 type="number"
                 value={isoYear}
                 onChange={e => setIsoYear(Number(e.target.value))}
-                className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 w-24 focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
+                className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 w-20 focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
               />
             </label>
-            <label className="flex items-center gap-1 text-gray-700 dark:text-gray-200">
+            <label className="flex items-center gap-1 text-gray-700 dark:text-gray-200 text-xs">
               KW:
               <input
                 type="number"
@@ -110,14 +110,14 @@ export default function Admin() {
                 max={53}
                 value={isoWeek}
                 onChange={e => setIsoWeek(Number(e.target.value))}
-                className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 w-16 focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
+                className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 w-14 focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
               />
             </label>
           </div>
         )}
 
         {/* TAB INHALTE */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-3">
           {activeTab === "users" && <UsersTable />}
           {activeTab === "menu" && <WeekMenuEditor isoYear={isoYear} isoWeek={isoWeek} />}
           {activeTab === "orders" && <OrdersTable isoYear={isoYear} isoWeek={isoWeek} />}

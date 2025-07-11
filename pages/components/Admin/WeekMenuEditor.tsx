@@ -247,19 +247,19 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   const ConfirmModal = () => (
     confirm && (
       <div className="fixed inset-0 z-30 bg-black bg-opacity-40 flex items-center justify-center">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg min-w-[300px] text-center border border-blue-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg min-w-[220px] text-center border border-blue-100 dark:border-gray-700">
           {confirm.action === "delete-preset" && (
             <>
-              <p className="mb-4 text-gray-900 dark:text-gray-100">Preset wirklich <b>löschen</b>?</p>
-              <button className="bg-red-600 text-white px-4 py-2 rounded-full font-semibold mr-2 hover:bg-red-700 shadow" onClick={handleDeletePreset}>Löschen</button>
-              <button className="bg-gray-200 dark:bg-gray-900 dark:text-gray-100 px-4 py-2 rounded-full font-semibold" onClick={() => setConfirm(null)}>Abbrechen</button>
+              <p className="mb-2 text-gray-900 dark:text-gray-100 text-sm">Preset wirklich <b>löschen</b>?</p>
+              <button className="bg-red-600 text-white px-2 py-1 rounded-full font-semibold mr-2 hover:bg-red-700 text-xs shadow" onClick={handleDeletePreset}>Löschen</button>
+              <button className="bg-gray-200 dark:bg-gray-900 dark:text-gray-100 px-2 py-1 rounded-full font-semibold text-xs" onClick={() => setConfirm(null)}>Abbrechen</button>
             </>
           )}
           {confirm.action === "load-preset" && (
             <>
-              <p className="mb-4 text-gray-900 dark:text-gray-100">Preset wirklich <b>laden</b>?<br /><span className="text-sm text-gray-500 dark:text-gray-400">(Alle aktuellen Menüs werden überschrieben!)</span></p>
-              <button className="bg-green-600 text-white px-4 py-2 rounded-full font-semibold mr-2 hover:bg-green-700 shadow" onClick={handleLoadPreset}>Preset laden</button>
-              <button className="bg-gray-200 dark:bg-gray-900 dark:text-gray-100 px-4 py-2 rounded-full font-semibold" onClick={() => setConfirm(null)}>Abbrechen</button>
+              <p className="mb-2 text-gray-900 dark:text-gray-100 text-sm">Preset wirklich <b>laden</b>?<br /><span className="text-xs text-gray-500 dark:text-gray-400">(Alle aktuellen Menüs werden überschrieben!)</span></p>
+              <button className="bg-green-600 text-white px-2 py-1 rounded-full font-semibold mr-2 hover:bg-green-700 text-xs shadow" onClick={handleLoadPreset}>Preset laden</button>
+              <button className="bg-gray-200 dark:bg-gray-900 dark:text-gray-100 px-2 py-1 rounded-full font-semibold text-xs" onClick={() => setConfirm(null)}>Abbrechen</button>
             </>
           )}
         </div>
@@ -268,71 +268,71 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   );
 
   return (
-    <div className="space-y-8">
-      <h2 className="text-xl font-bold mb-2 text-[#0056b3] dark:text-blue-200">Menü KW {isoWeek}/{isoYear}</h2>
+    <div className="space-y-6">
+      <h2 className="text-lg font-bold mb-1 text-[#0056b3] dark:text-blue-200">Menü KW {isoWeek}/{isoYear}</h2>
 
       {/* Presetbar */}
-      <div className="flex flex-wrap gap-2 mb-2">
+      <div className="flex flex-wrap gap-1 mb-2">
         <input
           value={presetName}
           onChange={e => setPresetName(e.target.value)}
           placeholder="Preset-Name"
-          className="border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
         <button
           onClick={handleSavePreset}
-          className="bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold px-4 py-1.5 rounded-full text-sm shadow transition"
+          className="bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
         >
           Preset speichern
         </button>
         <select
           value={selectedPresetId || ""}
           onChange={e => setSelectedPresetId(Number(e.target.value))}
-          className="border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
         >
           <option value="">Preset wählen…</option>
           {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         <button
           onClick={handleTryLoadPreset}
-          className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-1.5 rounded-full text-sm shadow transition"
+          className="bg-green-600 hover:bg-green-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
         >
           Preset laden
         </button>
         <button
           onClick={handleUndo}
           disabled={undoStack.length === 0}
-          className="bg-yellow-400 text-black font-semibold px-4 py-1.5 rounded-full text-sm shadow transition disabled:bg-yellow-200"
+          className="bg-yellow-400 text-black font-semibold px-2 py-1 rounded-full text-xs shadow transition disabled:bg-yellow-200"
         >
           Undo
         </button>
         <button
           onClick={exportCSV}
-          className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-1.5 rounded-full text-sm shadow transition"
+          className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
         >
           Export als CSV
         </button>
       </div>
 
       {/* Preset-Liste für Edit/Löschen */}
-      <div className="flex flex-wrap gap-2 mb-2">
+      <div className="flex flex-wrap gap-1 mb-2">
         {presets.map(p => (
-          <div key={p.id} className="flex items-center gap-2 bg-blue-50 dark:bg-gray-900 px-2 py-1 rounded-lg text-sm">
+          <div key={p.id} className="flex items-center gap-1 bg-blue-50 dark:bg-gray-900 px-1.5 py-1 rounded-lg text-xs">
             {editPresetId === p.id ? (
               <>
                 <input
                   value={editPresetName}
                   onChange={e => setEditPresetName(e.target.value)}
-                  className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
+                  className="border border-blue-200 dark:border-gray-700 rounded px-1.5 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
                 />
-                <button onClick={handleSavePresetName} className="bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-3 py-1 rounded-full text-sm font-semibold shadow transition">Speichern</button>
-                <button onClick={() => setEditPresetId(null)} className="text-red-600 font-semibold">Abbrechen</button>
+                <button onClick={handleSavePresetName} className="bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-2 py-1 rounded-full text-xs font-semibold shadow transition">Speichern</button>
+                <button onClick={() => setEditPresetId(null)} className="text-red-600 font-semibold text-xs">Abbrechen</button>
               </>
             ) : (
               <>
                 <span>{p.name}</span>
-                <button onClick={() => handleEditPresetName(p.id, p.name)} className="text-[#0056b3] underline font-semibold">Umbenennen</button>
-                <button onClick={() => handleTryDeletePreset(p.id)} className="text-red-600 underline font-semibold">Löschen</button>
+                <button onClick={() => handleEditPresetName(p.id, p.name)} className="text-[#0056b3] underline font-semibold text-xs">Umbenennen</button>
+                <button onClick={() => handleTryDeletePreset(p.id)} className="text-red-600 underline font-semibold text-xs">Löschen</button>
               </>
             )}
           </div>
@@ -341,50 +341,50 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
       {/* Tages-Menüs */}
       {Object.entries(WEEKDAYS).map(([d, name]) => (
-        <div key={d} className="mb-4 border border-blue-100 dark:border-gray-700 rounded-2xl shadow bg-white dark:bg-gray-800 p-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-3">
-            <div className="font-semibold text-[#0056b3] dark:text-blue-200">{name}</div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => handleAddMenu(Number(d))} className="px-3 py-1.5 bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-full font-semibold text-sm shadow transition">+ Menü</button>
-              <button onClick={() => handleCopyDay(Number(d))} className="px-3 py-1.5 bg-yellow-400 text-black rounded-full font-semibold text-sm shadow transition">Kopieren</button>
+        <div key={d} className="mb-2 border border-blue-100 dark:border-gray-700 rounded-2xl shadow bg-white dark:bg-gray-800 p-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-2">
+            <div className="font-semibold text-[#0056b3] dark:text-blue-200 text-xs">{name}</div>
+            <div className="flex flex-wrap gap-1">
+              <button onClick={() => handleAddMenu(Number(d))} className="px-2 py-1 bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-full font-semibold text-xs shadow transition">+ Menü</button>
+              <button onClick={() => handleCopyDay(Number(d))} className="px-2 py-1 bg-yellow-400 text-black rounded-full font-semibold text-xs shadow transition">Kopieren</button>
               {copiedDay && (
                 <>
                   <select
                     value={pasteTarget}
                     onChange={e => setPasteTarget(Number(e.target.value))}
-                    className="border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
                     {[1,2,3,4,5].map(dd => <option key={dd} value={dd}>{WEEKDAYS[dd]}</option>)}
                   </select>
-                  <button onClick={handlePasteDay} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-full text-sm font-semibold shadow transition">Einfügen</button>
-                  <button onClick={() => setCopiedDay(null)} className="text-red-600 font-semibold ml-2 text-sm">Abbruch</button>
+                  <button onClick={handlePasteDay} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded-full text-xs font-semibold shadow transition">Einfügen</button>
+                  <button onClick={() => setCopiedDay(null)} className="text-red-600 font-semibold ml-1 text-xs">Abbruch</button>
                 </>
               )}
             </div>
           </div>
           {menus[Number(d)].length === 0 && (
-            <div className="text-gray-400 dark:text-gray-500 text-sm">Noch kein Menü für {name}.</div>
+            <div className="text-gray-400 dark:text-gray-500 text-xs">Noch kein Menü für {name}.</div>
           )}
-          <div className="space-y-2">
+          <div className="space-y-1">
             {menus[Number(d)].map((m, i) => (
-              <div key={i} className="flex flex-col md:flex-row gap-2 items-start md:items-center bg-blue-50 dark:bg-gray-900 px-2 py-2 rounded-lg">
+              <div key={i} className="flex flex-col md:flex-row gap-1 items-start md:items-center bg-blue-50 dark:bg-gray-900 px-1.5 py-1 rounded-lg">
                 <input
                   type="number"
                   value={m.menu_number}
                   onChange={e => handleMenuChange(Number(d), i, { menu_number: Number(e.target.value) })}
-                  className="border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 w-20 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 w-14 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <input
                   type="text"
                   value={m.description}
                   onChange={e => handleMenuChange(Number(d), i, { description: e.target.value })}
-                  className="border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 flex-1 min-w-[120px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 flex-1 min-w-[80px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
                   placeholder="Bezeichnung"
                 />
                 <select
                   value={m.caterer_id}
                   onChange={e => handleMenuChange(Number(d), i, { caterer_id: Number(e.target.value) })}
-                  className="border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
                 >
                   {CATERER_OPTIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -392,15 +392,15 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
                   type="datetime-local"
                   value={m.order_deadline}
                   onChange={e => handleMenuChange(Number(d), i, { order_deadline: e.target.value })}
-                  className="border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
-                <button onClick={() => handleRemoveMenu(Number(d), i)} className="bg-red-500 hover:bg-red-700 text-white rounded-full px-3 py-1.5 text-sm font-semibold shadow transition">Entfernen</button>
+                <button onClick={() => handleRemoveMenu(Number(d), i)} className="bg-red-500 hover:bg-red-700 text-white rounded-full px-2 py-1 text-xs font-semibold shadow transition">Entfernen</button>
               </div>
             ))}
           </div>
         </div>
       ))}
-      <button onClick={handleSave} className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-full shadow text-sm transition">Speichern</button>
+      <button onClick={handleSave} className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-full shadow text-xs transition">Speichern</button>
       <ConfirmModal />
     </div>
   );
