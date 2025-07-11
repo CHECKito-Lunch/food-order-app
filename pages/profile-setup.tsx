@@ -74,6 +74,7 @@ export default function ProfileSetup() {
               value={form.location}
               onChange={handleChange}
               className="w-full border border-blue-200 dark:border-gray-700 rounded px-3 py-1.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+              required
             >
               <option value="Nordpol">Nordpol</option>
               <option value="Südpol">Südpol</option>

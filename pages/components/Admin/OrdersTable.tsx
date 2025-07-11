@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 
-// Mapping für Wochentags-Nummer zu String
 const WEEKDAYS: Record<number, string> = {
   1: 'Montag',
   2: 'Dienstag',
@@ -9,8 +8,6 @@ const WEEKDAYS: Record<number, string> = {
   4: 'Donnerstag',
   5: 'Freitag'
 };
-
-// Mapping für Caterer-ID zu Name
 const CATERER_OPTIONS: Record<number, string> = {
   1: 'Dean&David',
   2: 'Merkel',
@@ -35,6 +32,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
   useEffect(() => {
     async function fetchOrders() {
       setLoading(true);
+      // WICHTIG: Filtere auf week_menus.iso_week NICHT auf orders!
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -42,8 +40,6 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
           first_name,
           last_name,
           week_menu_id,
-          iso_week,
-          iso_year,
           week_menus (
             menu_number,
             description,
@@ -53,9 +49,8 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
             iso_year
           )
         `)
-        // Abgleich direkt auf `orders.iso_week/iso_year`, **nicht** auf den Join!
-        .eq('iso_week', isoWeek)
-        .eq('iso_year', isoYear);
+        .eq('week_menus.iso_week', isoWeek)
+        .eq('week_menus.iso_year', isoYear);
 
       // Debug-Ausgaben:
       console.log("[DEBUG] Supabase data:", data);
@@ -69,24 +64,19 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         return;
       }
 
-      // Formatieren
       const formatted: OrderAdmin[] = (data ?? []).map((row: any) => {
-        // Prio: Direkt aus orders, dann fallback auf week_menus (theoretisch redundant)
         const wm = row.week_menus ?? {};
         return {
           id: row.id,
           first_name: row.first_name ?? "",
           last_name: row.last_name ?? "",
-          iso_week: row.iso_week ?? wm.iso_week ?? "",
+          iso_week: wm.iso_week ?? "",
           day_of_week: wm.day_of_week ?? "",
           menu_number: wm.menu_number ?? "",
           description: wm.description ?? "",
           caterer_id: wm.caterer_id ?? null,
         };
       });
-
-      // Weitere Debug-Ausgabe
-      console.log("[DEBUG] Formatierte Orders:", formatted);
 
       setOrders(formatted);
       setLoading(false);
