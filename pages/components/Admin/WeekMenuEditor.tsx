@@ -167,17 +167,45 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     reloadMenus();
   };
 
-  // <<< NEU: Woche leeren (ALLE Menüs der Woche löschen) >>>
+  // <<< NEU: Woche leeren (ALLE Menüs + Orders der Woche löschen) >>>
   const handleClearWeek = async () => {
-    if (!window.confirm('Willst du wirklich die ganze Woche löschen? Alle Menüs dieser Woche werden entfernt!')) return;
-    // Lösche alle Menüs dieser Woche aus der DB:
-    const { error } = await supabase
+    if (!window.confirm('Willst du wirklich die ganze Woche löschen? Alle Menüs und zugehörige Bestellungen dieser Woche werden entfernt!')) return;
+    
+    // 1. Menü-IDs dieser Woche holen
+    const { data: menusToDelete, error: menuLoadError } = await supabase
+      .from('week_menus')
+      .select('id')
+      .eq('iso_year', isoYear)
+      .eq('iso_week', isoWeek);
+
+    if (menuLoadError) {
+      alert('Fehler beim Laden der Menüs: ' + menuLoadError.message);
+      return;
+    }
+
+    const menuIds = (menusToDelete ?? []).map((m: any) => m.id);
+
+    // 2. Orders löschen (wenn es welche gibt)
+    if (menuIds.length > 0) {
+      const { error: ordersError } = await supabase
+        .from('orders')
+        .delete()
+        .in('week_menu_id', menuIds);
+      if (ordersError) {
+        alert('Fehler beim Löschen der Bestellungen: ' + ordersError.message);
+        return;
+      }
+    }
+
+    // 3. Menüs löschen
+    const { error: menusError } = await supabase
       .from('week_menus')
       .delete()
       .eq('iso_year', isoYear)
       .eq('iso_week', isoWeek);
-    if (error) {
-      alert('Fehler beim Löschen: ' + error.message);
+
+    if (menusError) {
+      alert('Fehler beim Löschen der Menüs: ' + menusError.message);
       return;
     }
     setMenus({ 1: [], 2: [], 3: [], 4: [], 5: [] });
