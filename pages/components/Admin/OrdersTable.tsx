@@ -24,7 +24,7 @@ interface OrderAdmin {
   iso_week: number | string;
   day_of_week: number | string;
   menu_number: number | string;
-  menu_description: string;
+  description: string;
   caterer_id: number | null;
 }
 
@@ -44,7 +44,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
           week_menu_id,
           week_menus(
             menu_number,
-            menu_description,
+            description,
             caterer_id,
             day_of_week,
             iso_week,
@@ -53,6 +53,11 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         `)
         .eq('week_menus.iso_week', isoWeek)
         .eq('week_menus.iso_year', isoYear);
+
+      // Debug-Ausgaben einbauen:
+      console.log("[DEBUG] Supabase data:", data);
+      console.log("[DEBUG] Supabase error:", error);
+      console.log("[DEBUG] Suchparameter:", { isoYear, isoWeek });
 
       if (error) {
         console.error(error);
@@ -71,10 +76,13 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
           iso_week: wm.iso_week ?? "",
           day_of_week: wm.day_of_week ?? "",
           menu_number: wm.menu_number ?? "",
-          menu_description: wm.menu_description ?? "",
+          description: wm.description ?? "",
           caterer_id: wm.caterer_id ?? null
         };
       });
+
+      // Weitere Debug-Ausgabe
+      console.log("[DEBUG] Formatierte Orders:", formatted);
 
       setOrders(formatted);
       setLoading(false);
@@ -89,9 +97,11 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
       o.first_name,
       o.last_name,
       o.iso_week,
-      typeof o.day_of_week === "number" ? WEEKDAYS[o.day_of_week] : WEEKDAYS[Number(o.day_of_week)] ?? "",
+      typeof o.day_of_week === "number"
+        ? WEEKDAYS[o.day_of_week]
+        : WEEKDAYS[Number(o.day_of_week)] ?? "",
       o.menu_number,
-      o.menu_description,
+      o.description,
       o.caterer_id ? CATERER_OPTIONS[o.caterer_id] ?? o.caterer_id : ""
     ]);
     const csv = [header, ...rows].map(r => r.join(";")).join("\n");
@@ -145,7 +155,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
                       : WEEKDAYS[Number(o.day_of_week)] ?? ""}
                   </td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.menu_number}</td>
-                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.menu_description}</td>
+                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.description}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">
                     {o.caterer_id ? CATERER_OPTIONS[o.caterer_id] ?? o.caterer_id : ""}
                   </td>
