@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import dayjs from 'dayjs';
 
 const CATERER_OPTIONS = [
   { id: 1, name: 'Dean&David' },
@@ -53,11 +52,14 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
   // --- Menü-Laden ausgelagert ---
   const reloadMenus = async () => {
-    const { data: loaded } = await supabase
+    const { data: loaded, error } = await supabase
       .from('week_menus')
       .select('*')
       .eq('iso_year', isoYear)
       .eq('iso_week', isoWeek);
+
+    // Debug-Ausgabe ins Browser-Log!
+    console.log("Lade Menüs von Supabase:", loaded, "Fehler:", error);
 
     const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
     (loaded || []).forEach((m: any) => {
@@ -65,13 +67,15 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       if (grouped[day]) {
         grouped[day].push({
           ...m,
-          // Datetime korrekt für <input type="datetime-local" />
           order_deadline: m.order_deadline
             ? new Date(m.order_deadline).toISOString().slice(0, 16)
             : ''
         });
+      } else {
+        console.warn("Unbekannter Wochentag in DB:", m.day_of_week, m);
       }
     });
+    console.log("Gruppierte Menüs:", grouped);
     setMenus(grouped);
     setUndoStack([]);
     setReloadTime(new Date().toLocaleTimeString('de-DE'));
