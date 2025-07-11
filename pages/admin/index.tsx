@@ -44,10 +44,19 @@ export default function Admin() {
       <div className="w-full max-w-4xl mx-auto mt-10 px-2 md:px-0">
         {/* Header */}
         <div className="rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 mb-8 p-4 md:p-6 bg-white dark:bg-gray-800 flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between">
-          <h1 className="text-2xl md:text-3xl font-bold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-0 tracking-tight">
-            Admin Dashboard
-          </h1>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4 w-full justify-between">
+            <h1 className="text-2xl md:text-3xl font-bold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-0 tracking-tight">
+              Admin Dashboard
+            </h1>
+            <button
+              onClick={() => router.push('/index')}
+              className="text-sm px-4 py-2 rounded-full font-semibold bg-blue-100 text-[#0056b3] hover:bg-blue-200 dark:bg-gray-700 dark:text-blue-100 dark:hover:bg-gray-600 shadow transition"
+              title="Zur Useransicht"
+            >
+              Zur Useransicht
+            </button>
+          </div>
+          <div className="flex gap-2 mt-2 md:mt-0">
             <button
               onClick={() => setActiveTab("users")}
               className={`text-sm px-3 py-1.5 rounded-full font-semibold transition ${
@@ -66,7 +75,7 @@ export default function Admin() {
                   : "bg-blue-100 text-[#0056b3] hover:bg-blue-200 dark:bg-gray-700 dark:text-blue-100 dark:hover:bg-gray-600"
               }`}
             >
-              Wochen-Menü Editor
+              Menü Editor
             </button>
             <button
               onClick={() => setActiveTab("orders")}

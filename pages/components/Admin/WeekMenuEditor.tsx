@@ -250,14 +250,14 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
         <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg min-w-[300px] text-center border border-blue-100 dark:border-gray-700">
           {confirm.action === "delete-preset" && (
             <>
-              <p className="mb-4">Preset wirklich <b>löschen</b>?</p>
+              <p className="mb-4 text-gray-900 dark:text-gray-100">Preset wirklich <b>löschen</b>?</p>
               <button className="bg-red-600 text-white px-4 py-2 rounded-full font-semibold mr-2 hover:bg-red-700 shadow" onClick={handleDeletePreset}>Löschen</button>
               <button className="bg-gray-200 dark:bg-gray-900 dark:text-gray-100 px-4 py-2 rounded-full font-semibold" onClick={() => setConfirm(null)}>Abbrechen</button>
             </>
           )}
           {confirm.action === "load-preset" && (
             <>
-              <p className="mb-4">Preset wirklich <b>laden</b>?<br /><span className="text-sm text-gray-500 dark:text-gray-400">(Alle aktuellen Menüs werden überschrieben!)</span></p>
+              <p className="mb-4 text-gray-900 dark:text-gray-100">Preset wirklich <b>laden</b>?<br /><span className="text-sm text-gray-500 dark:text-gray-400">(Alle aktuellen Menüs werden überschrieben!)</span></p>
               <button className="bg-green-600 text-white px-4 py-2 rounded-full font-semibold mr-2 hover:bg-green-700 shadow" onClick={handleLoadPreset}>Preset laden</button>
               <button className="bg-gray-200 dark:bg-gray-900 dark:text-gray-100 px-4 py-2 rounded-full font-semibold" onClick={() => setConfirm(null)}>Abbrechen</button>
             </>
@@ -269,7 +269,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
   return (
     <div className="space-y-8">
-      <h2 className="text-xl font-bold mb-2 text-[#0056b3]">Menü KW {isoWeek}/{isoYear}</h2>
+      <h2 className="text-xl font-bold mb-2 text-[#0056b3] dark:text-blue-200">Menü KW {isoWeek}/{isoYear}</h2>
 
       {/* Presetbar */}
       <div className="flex flex-wrap gap-2 mb-2">
@@ -343,7 +343,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       {Object.entries(WEEKDAYS).map(([d, name]) => (
         <div key={d} className="mb-4 border border-blue-100 dark:border-gray-700 rounded-2xl shadow bg-white dark:bg-gray-800 p-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-3">
-            <div className="font-semibold text-[#0056b3]">{name}</div>
+            <div className="font-semibold text-[#0056b3] dark:text-blue-200">{name}</div>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => handleAddMenu(Number(d))} className="px-3 py-1.5 bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-full font-semibold text-sm shadow transition">+ Menü</button>
               <button onClick={() => handleCopyDay(Number(d))} className="px-3 py-1.5 bg-yellow-400 text-black rounded-full font-semibold text-sm shadow transition">Kopieren</button>

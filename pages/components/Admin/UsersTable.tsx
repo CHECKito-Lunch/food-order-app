@@ -113,7 +113,7 @@ export default function UsersTable() {
     await fetchUsers();
   }
 
-  if (loading) return <div className="text-center py-12 text-lg">Lädt...</div>;
+  if (loading) return <div className="text-center py-12 text-lg dark:bg-gray-900 dark:text-gray-100">Lädt...</div>;
 
   // Filter users nach Suchtext
   const filtered = users.filter(u =>
@@ -126,7 +126,7 @@ export default function UsersTable() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-2 text-[#0056b3]">Userverwaltung</h2>
+      <h2 className="text-xl font-bold mb-2 text-[#0056b3] dark:text-blue-200">Userverwaltung</h2>
       <div className="flex flex-col md:flex-row gap-2 md:gap-4 mb-3">
         <button
           onClick={() => { setEditForm({ location: LOCATION_OPTIONS[0] }); setShowCreate(true); }}
@@ -139,31 +139,41 @@ export default function UsersTable() {
           placeholder="Suche nach Name, Email, Rolle..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="border border-blue-200 p-2 rounded-lg flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="
+            border border-blue-200 dark:border-gray-700
+            rounded px-3 py-2
+            bg-white dark:bg-gray-900
+            text-gray-900 dark:text-gray-100
+            placeholder-gray-400 dark:placeholder-gray-500
+            focus:outline-none focus:ring-2 focus:ring-blue-400
+            text-sm
+            w-full
+            transition
+          "
         />
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-blue-100 shadow bg-white">
-        <table className="min-w-full divide-y divide-blue-100">
+      <div className="overflow-x-auto rounded-2xl border border-blue-100 dark:border-gray-700 shadow bg-white dark:bg-gray-800">
+        <table className="min-w-full divide-y divide-blue-100 dark:divide-gray-700">
           <thead>
-            <tr className="bg-blue-50">
-              <th className="p-3 font-semibold text-[#0056b3]">E-Mail</th>
-              <th className="p-3 font-semibold text-[#0056b3]">Vorname</th>
-              <th className="p-3 font-semibold text-[#0056b3]">Nachname</th>
-              <th className="p-3 font-semibold text-[#0056b3]">Location</th>
-              <th className="p-3 font-semibold text-[#0056b3]">Rolle</th>
-              <th className="p-3 font-semibold text-[#0056b3]">Aktionen</th>
+            <tr className="bg-blue-50 dark:bg-gray-900">
+              <th className="p-3 font-semibold text-[#0056b3] dark:text-blue-200">E-Mail</th>
+              <th className="p-3 font-semibold text-[#0056b3] dark:text-blue-200">Vorname</th>
+              <th className="p-3 font-semibold text-[#0056b3] dark:text-blue-200">Nachname</th>
+              <th className="p-3 font-semibold text-[#0056b3] dark:text-blue-200">Location</th>
+              <th className="p-3 font-semibold text-[#0056b3] dark:text-blue-200">Rolle</th>
+              <th className="p-3 font-semibold text-[#0056b3] dark:text-blue-200">Aktionen</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map(u => (
-              <tr key={u.id} className="hover:bg-blue-50">
-                <td className="border-t p-3">{u.email}</td>
-                <td className="border-t p-3">{u.first_name}</td>
-                <td className="border-t p-3">{u.last_name}</td>
-                <td className="border-t p-3">{u.location}</td>
-                <td className="border-t p-3">{u.role}</td>
-                <td className="border-t p-3 flex flex-col gap-1 md:flex-row">
-                  <button onClick={() => handleEdit(u)} className="text-[#0056b3] hover:underline font-semibold">
+              <tr key={u.id} className="hover:bg-blue-50 dark:hover:bg-gray-700">
+                <td className="border-t border-blue-100 dark:border-gray-700 p-3">{u.email}</td>
+                <td className="border-t border-blue-100 dark:border-gray-700 p-3">{u.first_name}</td>
+                <td className="border-t border-blue-100 dark:border-gray-700 p-3">{u.last_name}</td>
+                <td className="border-t border-blue-100 dark:border-gray-700 p-3">{u.location}</td>
+                <td className="border-t border-blue-100 dark:border-gray-700 p-3">{u.role}</td>
+                <td className="border-t border-blue-100 dark:border-gray-700 p-3 flex flex-col gap-1 md:flex-row">
+                  <button onClick={() => handleEdit(u)} className="text-[#0056b3] dark:text-blue-400 hover:underline font-semibold">
                     Bearbeiten
                   </button>
                   <button onClick={() => handleDelete(u)} className="text-red-600 hover:underline font-semibold">
@@ -174,7 +184,7 @@ export default function UsersTable() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-5 text-gray-400 text-center">Keine passenden User gefunden.</td>
+                <td colSpan={6} className="p-5 text-gray-400 dark:text-gray-500 text-center">Keine passenden User gefunden.</td>
               </tr>
             )}
           </tbody>
@@ -184,21 +194,27 @@ export default function UsersTable() {
       {/* Bearbeiten Modal */}
       {editing && (
         <div className="fixed inset-0 z-30 bg-black bg-opacity-40 flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-auto border border-blue-100">
-            <h3 className="font-bold text-lg mb-4 text-[#0056b3]">User bearbeiten</h3>
-            <input value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="E-Mail" />
-            <input value={editForm.first_name} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="Vorname" />
-            <input value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="Nachname" />
-            <select value={editForm.location || LOCATION_OPTIONS[0]} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md mx-auto border border-blue-100 dark:border-gray-700">
+            <h3 className="font-bold text-lg mb-4 text-[#0056b3] dark:text-blue-200">User bearbeiten</h3>
+            <input value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400" placeholder="E-Mail" />
+            <input value={editForm.first_name} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })}
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400" placeholder="Vorname" />
+            <input value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })}
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400" placeholder="Nachname" />
+            <select value={editForm.location || LOCATION_OPTIONS[0]} onChange={e => setEditForm({ ...editForm, location: e.target.value })}
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
               {LOCATION_OPTIONS.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
-            <select value={editForm.role || "user"} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded">
+            <select value={editForm.role || "user"} onChange={e => setEditForm({ ...editForm, role: e.target.value })}
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
-            <input value={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} type="text" className="mb-2 w-full p-2 border border-blue-200 rounded" placeholder="Neues Passwort (optional)" />
+            <input value={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} type="text"
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" placeholder="Neues Passwort (optional)" />
             <div className="flex gap-2 mt-2">
               <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-green-700 shadow">Speichern</button>
               <button onClick={() => setEditing(null)} className="text-red-600 font-semibold">Abbrechen</button>
@@ -210,21 +226,27 @@ export default function UsersTable() {
       {/* Neuen User anlegen Modal */}
       {showCreate && (
         <div className="fixed inset-0 z-30 bg-black bg-opacity-40 flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-auto border border-blue-100">
-            <h3 className="font-bold text-lg mb-4 text-[#0056b3]">User anlegen</h3>
-            <input value={editForm.email || ""} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="E-Mail" />
-            <input value={editForm.first_name || ""} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="Vorname" />
-            <input value={editForm.last_name || ""} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-400" placeholder="Nachname" />
-            <select value={editForm.location || LOCATION_OPTIONS[0]} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md mx-auto border border-blue-100 dark:border-gray-700">
+            <h3 className="font-bold text-lg mb-4 text-[#0056b3] dark:text-blue-200">User anlegen</h3>
+            <input value={editForm.email || ""} onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400" placeholder="E-Mail" />
+            <input value={editForm.first_name || ""} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })}
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400" placeholder="Vorname" />
+            <input value={editForm.last_name || ""} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })}
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400" placeholder="Nachname" />
+            <select value={editForm.location || LOCATION_OPTIONS[0]} onChange={e => setEditForm({ ...editForm, location: e.target.value })}
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
               {LOCATION_OPTIONS.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
-            <select value={editForm.role || "user"} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="mb-2 w-full p-2 border border-blue-200 rounded">
+            <select value={editForm.role || "user"} onChange={e => setEditForm({ ...editForm, role: e.target.value })}
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
-            <input value={editForm.password || ""} onChange={e => setEditForm({ ...editForm, password: e.target.value })} type="text" className="mb-2 w-full p-2 border border-blue-200 rounded" placeholder="Passwort" />
+            <input value={editForm.password || ""} onChange={e => setEditForm({ ...editForm, password: e.target.value })} type="text"
+              className="mb-2 w-full p-2 border border-blue-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" placeholder="Passwort" />
             <div className="flex gap-2 mt-2">
               <button onClick={handleCreate} className="bg-green-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-green-700 shadow">Anlegen</button>
               <button onClick={() => setShowCreate(false)} className="text-red-600 font-semibold">Abbrechen</button>
