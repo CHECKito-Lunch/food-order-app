@@ -1,5 +1,5 @@
 // pages/_app.tsx
-'use client'; // falls du Next.js 13 App Router nutzt, sonst weglassen
+'use client';
 
 import '../styles/globals.css';
 import type { AppProps } from 'next/app';
@@ -7,6 +7,7 @@ import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { supabase } from '@/lib/supabaseClient';
 import Head from 'next/head';
 import { Analytics } from "@vercel/analytics/next";
+import { useRouter } from 'next/router';
 
 function HeaderLogo() {
   return (
@@ -23,6 +24,12 @@ function HeaderLogo() {
 }
 
 export default function App({ Component, pageProps }: AppProps) {
+  // useRouter muss *innerhalb* der Komponente verwendet werden!
+  const router = useRouter();
+
+  // Auf der Login-Seite KEIN HeaderLogo anzeigen
+  const hideHeader = router.pathname === "/login";
+
   return (
     <SessionContextProvider supabaseClient={supabase as any}>
       <Head>
@@ -31,7 +38,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <div className="min-h-screen bg-white text-gray-900 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
-        <HeaderLogo />
+        {!hideHeader && <HeaderLogo />}
         <Component {...pageProps} />
       </div>
       <Analytics />

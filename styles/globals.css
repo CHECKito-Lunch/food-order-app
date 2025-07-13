@@ -2,12 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* === COLOR THEME === */
 :root {
-  --background: #f7faff; /* CHECK24-hellblau */
-  --foreground: #1a2947; /* dunkles CHECK24-blau */
-  --primary: #0056b3;    /* CHECK24-blau */
-  --primary-light: #2287f9; /* leichtes blau */
-  --accent: #09ad00;     /* accent grün */
+  --background: #f7faff;     /* CHECK24-hellblau */
+  --foreground: #1a2947;     /* dunkles CHECK24-blau */
+  --primary: #0056b3;        /* CHECK24-blau */
+  --primary-light: #2287f9;  /* leichtes blau */
+  --accent: #09ad00;         /* accent grün */
+  --divider: #cce3fa;        /* zarte Trennlinie */
+  --shadow: 0 6px 20px 0 rgba(0, 87, 179, 0.07); /* soft shadow */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,6 +20,8 @@
     --primary: #449aff;
     --primary-light: #2563eb;
     --accent: #4de77e;
+    --divider: #12385d;
+    --shadow: 0 6px 20px 0 rgba(36, 160, 255, 0.10);
   }
 }
 
@@ -69,6 +74,7 @@ button {
   }
 }
 
+/* === ELEGANTE SCROLLBAR === */
 ::-webkit-scrollbar {
   width: 8px;
   background: #e5eefd;
@@ -77,8 +83,26 @@ button {
   background: #aad0fa;
   border-radius: 8px;
 }
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar {
+    background: #173252;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #449aff;
+  }
+}
 
-/* --- ANIMATION UTILITY --- */
+/* === ELEGANTE TRENNLINIE FÜR LOGO === */
+.header-divider {
+  height: 3px;
+  width: 160px;
+  background: var(--divider);
+  border-radius: 99px;
+  margin: 12px auto 4px auto;
+  box-shadow: var(--shadow);
+}
+
+/* === ANIMATION UTILITY === */
 @layer utilities {
   .animate-fade-in { animation: fadeIn 0.3s ease; }
   @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }

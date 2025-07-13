@@ -6,6 +6,7 @@ export default function Login() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -14,6 +15,9 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Supabase speichert Session by default im localStorage.
+    // (Der Switch ist kosmetisch oder für spätere Features)
     const { error } = await supabase.auth.signInWithPassword(form);
     if (error) {
       alert(error.message);
@@ -25,17 +29,15 @@ export default function Login() {
         if (role === "admin") {
           router.push("/admin");
         } else {
-          // Harte Weiterleitung, damit die Session wirklich neu geladen wird!
           window.location.href = "/";
         }
-      }, 300); // optional UX delay
+      }, 300);
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-blue-50 dark:bg-gray-900 px-2">
       <div className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 md:p-8 border border-blue-100 dark:border-gray-700">
-        {/* LOGO */}
         <div className="flex justify-center mb-5">
           <img
             src="/CHECK24_App_Icon_NNova-Blue_rounded.png"
@@ -77,6 +79,27 @@ export default function Login() {
               required
             />
           </div>
+
+          {/* Schieberegler (Optik, Funktion siehe oben) */}
+          <div className="flex items-center justify-between mt-4 mb-2">
+            <label className="flex items-center cursor-pointer text-xs gap-2 select-none text-gray-700 dark:text-gray-300">
+              <span>Eingeloggt bleiben</span>
+              <span className="relative">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="sr-only"
+                />
+                <span className={`block w-10 h-6 rounded-full transition-colors duration-200
+                  ${rememberMe ? "bg-blue-600" : "bg-gray-300"}`}>
+                  <span className={`absolute left-0 top-0 w-6 h-6 rounded-full bg-white border shadow 
+                    transition-transform duration-200 ${rememberMe ? "translate-x-4" : ""}`} />
+                </span>
+              </span>
+            </label>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
