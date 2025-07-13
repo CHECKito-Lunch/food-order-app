@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
 :root {
   --background: #f7faff; /* CHECK24-hellblau */
   --foreground: #1a2947; /* dunkles CHECK24-blau */
@@ -77,4 +76,10 @@ button {
 ::-webkit-scrollbar-thumb {
   background: #aad0fa;
   border-radius: 8px;
+}
+
+/* --- ANIMATION UTILITY --- */
+@layer utilities {
+  .animate-fade-in { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
 }

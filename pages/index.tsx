@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabaseClient';
 import dayjs from '../lib/dayjs';
 import Login from './login';
 import { useRouter } from 'next/router';
+// ICONS
+import { LogOut, Shield, User, ChevronDown, ChevronUp, Edit, KeyRound } from 'lucide-react';
 
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
 
@@ -13,12 +15,7 @@ interface WeekMenu {
   description: string;
   order_deadline: string;
 }
-
-interface Order {
-  id: number;
-  week_menu_id: number;
-}
-
+interface Order { id: number; week_menu_id: number; }
 interface Profile {
   id: string;
   first_name: string;
@@ -41,7 +38,8 @@ export default function Dashboard() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Passwort-Ändern States
+  // UI states
+  const [profileOpen, setProfileOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [password1, setPassword1] = useState('');
   const [password2, setPassword2] = useState('');
@@ -81,7 +79,6 @@ export default function Dashboard() {
     })();
   }, [user, selectedYear, selectedWeek]);
 
-  // Prüfe auf unvollständiges Profil (alle Felder müssen gefüllt sein)
   const needsProfile = profile && (
     !profile.first_name ||
     !profile.last_name ||
@@ -90,14 +87,8 @@ export default function Dashboard() {
 
   // Passwort ändern
   async function handlePasswordChange() {
-    if (!password1 || !password2) {
-      alert("Bitte beide Felder ausfüllen.");
-      return;
-    }
-    if (password1 !== password2) {
-      alert("Passwörter stimmen nicht überein.");
-      return;
-    }
+    if (!password1 || !password2) return alert("Bitte beide Felder ausfüllen.");
+    if (password1 !== password2) return alert("Passwörter stimmen nicht überein.");
     setPwLoading(true);
     const { error } = await supabase.auth.updateUser({ password: password1 });
     setPwLoading(false);
@@ -197,7 +188,6 @@ export default function Dashboard() {
     setOrders((orderData ?? []) as Order[]);
   };
 
-  // Neues saveProfile: lädt nach Speichern das Profil neu!
   async function saveProfile() {
     if (!profile) return;
     await supabase.from('profiles').update({
@@ -205,14 +195,11 @@ export default function Dashboard() {
       last_name: profileEdit.last_name,
       location: profileEdit.location,
     }).eq('id', profile.id);
-
-    // Profil nach dem Speichern neu laden!
     const { data: updatedProfile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', profile.id)
       .single();
-
     setProfile(updatedProfile);
     setProfileEdit(updatedProfile);
     setEditingProfile(false);
@@ -227,8 +214,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-4 md:p-6">
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-1 leading-tight">
-            CHECKito Lunch
+          <h1 className="text-3xl md:text-4xl font-extrabold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-1 leading-tight flex items-center gap-2">
+            <User className="w-8 h-8" /> CHECKito Lunch
           </h1>
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center text-sm text-gray-700 dark:text-gray-200">
             {/* Jahr */}
@@ -259,119 +246,129 @@ export default function Dashboard() {
             </label>
           </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 mt-4 md:mt-0 w-full sm:w-auto">
+        <div className="flex flex-col gap-2 w-full sm:w-auto">
           {/* ---- Admin Button ---- */}
           {profile?.role === "admin" && (
             <button
-              className="w-full sm:w-auto bg-orange-600 dark:bg-orange-700 hover:bg-orange-700 dark:hover:bg-orange-800 transition text-white text-sm px-6 py-2 rounded-full shadow font-bold"
+              className="w-full flex items-center gap-2 bg-orange-600 dark:bg-orange-700 hover:bg-orange-700 dark:hover:bg-orange-800 transition text-white text-sm px-6 py-2 rounded-full shadow font-bold"
               onClick={() => window.location.href = "/admin"}
             >
+              <Shield className="w-5 h-5" />
               Admin Dashboard
             </button>
           )}
           {/* ---- Logout Button ---- */}
           <button
-            className="w-full sm:w-auto bg-[#0056b3] dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-700 transition text-white text-sm px-6 py-2 rounded-full shadow font-bold"
+            className="w-full flex items-center gap-2 bg-[#0056b3] dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-700 transition text-white text-sm px-6 py-2 rounded-full shadow font-bold"
             onClick={async () => {
               await supabase.auth.signOut();
               setUser(null);
               router.replace('/login');
             }}
           >
+            <LogOut className="w-5 h-5" />
             Logout
           </button>
         </div>
       </div>
 
-      {/* Profil anzeigen/bearbeiten */}
+      {/* Profilbereich AUSKLAPPBAR */}
       <div className="border border-blue-100 dark:border-gray-700 rounded-2xl shadow bg-white dark:bg-gray-800 p-4 md:p-6">
-        <h2 className="text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-4">Mein Profil</h2>
-        {!editingProfile ? (
-          <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
-              <div className="mb-1"><span className="font-semibold">Vorname:</span> <span>{profile?.first_name}</span></div>
-              <div><span className="font-semibold">Nachname:</span> <span>{profile?.last_name}</span></div>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
-              <div><span className="font-semibold">Standort:</span> <span>{profile?.location}</span></div>
-            </div>
-            <button
-              className="mt-4 px-5 py-1.5 rounded-full bg-[#0056b3] dark:bg-blue-600 text-white text-sm font-bold shadow hover:bg-blue-800 dark:hover:bg-blue-700 transition w-full sm:w-auto"
-              onClick={() => setEditingProfile(true)}
-            >Bearbeiten</button>
-            {/* Passwort ändern Button */}
-            <button
-              className="mt-2 px-5 py-1.5 rounded-full bg-gray-400 dark:bg-gray-700 text-white text-sm font-bold shadow hover:bg-gray-600 dark:hover:bg-gray-800 transition w-full sm:w-auto"
-              onClick={() => setShowPassword(v => !v)}
-            >
-              Passwort ändern
-            </button>
-            {showPassword && (
-              <div className="mt-4 border-t border-blue-100 dark:border-gray-700 pt-4">
-                <input
-                  className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 mb-2 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                  type="password"
-                  value={password1}
-                  onChange={e => setPassword1(e.target.value)}
-                  placeholder="Neues Passwort"
-                  autoFocus
-                />
-                <input
-                  className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 mb-2 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                  type="password"
-                  value={password2}
-                  onChange={e => setPassword2(e.target.value)}
-                  placeholder="Passwort bestätigen"
-                />
-                <div className="flex gap-2">
-                  <button
-                    className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full"
-                    onClick={handlePasswordChange}
-                    disabled={pwLoading}
-                    type="button"
-                  >
-                    {pwLoading ? "Speichert..." : "Passwort speichern"}
-                  </button>
-                  <button
-                    className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full"
-                    onClick={() => { setShowPassword(false); setPassword1(''); setPassword2(''); }}
-                    type="button"
-                  >
-                    Abbrechen
-                  </button>
-                </div>
+        <button
+          className="flex items-center w-full justify-between text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-4 focus:outline-none"
+          onClick={() => setProfileOpen((v) => !v)}
+        >
+          <span className="flex items-center gap-2"><User className="w-6 h-6" /> Mein Profil</span>
+          {profileOpen ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+        </button>
+        {profileOpen && (
+          !editingProfile ? (
+            <div className="space-y-3 animate-fade-in">
+              <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
+                <div className="mb-1"><span className="font-semibold">Vorname:</span> <span>{profile?.first_name}</span></div>
+                <div><span className="font-semibold">Nachname:</span> <span>{profile?.last_name}</span></div>
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <input
-              className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-              value={profileEdit.first_name || ''}
-              onChange={e => setProfileEdit(p => ({ ...p, first_name: e.target.value }))}
-              placeholder="Vorname"
-            />
-            <input
-              className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-              value={profileEdit.last_name || ''}
-              onChange={e => setProfileEdit(p => ({ ...p, last_name: e.target.value }))}
-              placeholder="Nachname"
-            />
-            <select
-              className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-              value={profileEdit.location || ''}
-              onChange={e => setProfileEdit(p => ({ ...p, location: e.target.value }))}
-              required
-            >
-              <option value="">Standort wählen…</option>
-              <option value="Nordpol">Nordpol</option>
-              <option value="Südpol">Südpol</option>
-            </select>
-            <div className="flex flex-col sm:flex-row gap-3 mt-2">
-              <button className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full sm:w-auto" onClick={saveProfile}>Speichern</button>
-              <button className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full sm:w-auto" onClick={() => setEditingProfile(false)}>Abbrechen</button>
+              <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
+                <div><span className="font-semibold">Standort:</span> <span>{profile?.location}</span></div>
+              </div>
+              <button
+                className="mt-4 flex items-center justify-center gap-2 px-5 py-1.5 rounded-full bg-[#0056b3] dark:bg-blue-600 text-white text-sm font-bold shadow hover:bg-blue-800 dark:hover:bg-blue-700 transition w-full sm:w-auto"
+                onClick={() => setEditingProfile(true)}
+              ><Edit className="w-4 h-4" /> Bearbeiten</button>
+              {/* Passwort ändern Button */}
+              <button
+                className="mt-2 flex items-center justify-center gap-2 px-5 py-1.5 rounded-full bg-gray-400 dark:bg-gray-700 text-white text-sm font-bold shadow hover:bg-gray-600 dark:hover:bg-gray-800 transition w-full sm:w-auto"
+                onClick={() => setShowPassword(v => !v)}
+              >
+                <KeyRound className="w-4 h-4" /> Passwort ändern
+              </button>
+              {showPassword && (
+                <div className="mt-4 border-t border-blue-100 dark:border-gray-700 pt-4">
+                  <input
+                    className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 mb-2 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                    type="password"
+                    value={password1}
+                    onChange={e => setPassword1(e.target.value)}
+                    placeholder="Neues Passwort"
+                    autoFocus
+                  />
+                  <input
+                    className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 mb-2 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                    type="password"
+                    value={password2}
+                    onChange={e => setPassword2(e.target.value)}
+                    placeholder="Passwort bestätigen"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full"
+                      onClick={handlePasswordChange}
+                      disabled={pwLoading}
+                      type="button"
+                    >
+                      {pwLoading ? "Speichert..." : "Passwort speichern"}
+                    </button>
+                    <button
+                      className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full"
+                      onClick={() => { setShowPassword(false); setPassword1(''); setPassword2(''); }}
+                      type="button"
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col gap-3 animate-fade-in">
+              <input
+                className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                value={profileEdit.first_name || ''}
+                onChange={e => setProfileEdit(p => ({ ...p, first_name: e.target.value }))}
+                placeholder="Vorname"
+              />
+              <input
+                className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                value={profileEdit.last_name || ''}
+                onChange={e => setProfileEdit(p => ({ ...p, last_name: e.target.value }))}
+                placeholder="Nachname"
+              />
+              <select
+                className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                value={profileEdit.location || ''}
+                onChange={e => setProfileEdit(p => ({ ...p, location: e.target.value }))}
+                required
+              >
+                <option value="">Standort wählen…</option>
+                <option value="Nordpol">Nordpol</option>
+                <option value="Südpol">Südpol</option>
+              </select>
+              <div className="flex flex-col sm:flex-row gap-3 mt-2">
+                <button className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full sm:w-auto" onClick={saveProfile}>Speichern</button>
+                <button className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full sm:w-auto" onClick={() => setEditingProfile(false)}>Abbrechen</button>
+              </div>
+            </div>
+          )
         )}
       </div>
 
