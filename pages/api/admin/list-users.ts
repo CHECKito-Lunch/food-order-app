@@ -1,4 +1,3 @@
-// pages/api/admin/list-users.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 
@@ -17,19 +16,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let nextPageToken: string | undefined = undefined;
 
     do {
-      // Die API von Supabase unterstützt paging, aber das Property heißt manchmal unterschiedlich:
-      // Aktuell (Juli 2024) => "next_page_token"
-      // Wir holen 1000 User pro Seite (maximal erlaubt)
-      // "page" und "perPage" funktionieren in einigen Clients, aber falls nicht, nutze nur "nextPageToken"
+      // TS-Hack für Supabase Paging (page erwartet number, bekommt aber eigentlich string-token)
       const { data, error } = await supabase.auth.admin.listUsers({
-        page: nextPageToken,
+        page: nextPageToken as unknown as number,
         perPage: 1000,
       });
 
       if (error) throw error;
       const users = data?.users ?? [];
       allUsers = allUsers.concat(users);
-      nextPageToken = (data as any).next_page_token || undefined;
+      nextPageToken = (data as any).next_page_token ?? undefined;
     } while (nextPageToken);
 
     return res.status(200).json({ users: allUsers });
