@@ -24,7 +24,7 @@ export default function UsersTable() {
   // Userdaten laden
   const fetchUsers = async () => {
     setLoading(true);
-    const { data: profiles, error } = await supabase.from("profiles").select("*");
+    const { data: profiles, error } = await supabase.from("profiles").select("*").range(0, 999);
     const res = await fetch("/api/admin/list-users");
     const { users: authList, error: error2 } = await res.json();
     if (error || error2) {
