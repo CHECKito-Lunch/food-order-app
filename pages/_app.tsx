@@ -26,8 +26,8 @@ function HeaderLogo() {
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
-  // Kein Header auf /login und /
-  const hideHeader = router.pathname === "/login" || router.pathname === "/";
+  // Kein Header auf /login
+  const hideHeader = router.pathname === "/login";
 
   return (
     <SessionContextProvider supabaseClient={supabase as any}>
