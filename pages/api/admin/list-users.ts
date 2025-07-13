@@ -8,20 +8,31 @@ const supabase = createClient(
 );
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Nur GET erlauben
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Optional: Hier könntest du noch einen Auth-Check machen, z.B. nur Admins.
-  // (Sonst ist diese Route offen!)
-
   try {
-    const { data, error } = await supabase.auth.admin.listUsers();
-    if (error) throw error;
-    // Fallback falls kein Array zurückkommt:
-    const users = data?.users ?? [];
-    return res.status(200).json({ users });
+    let allUsers: any[] = [];
+    let nextPageToken: string | undefined = undefined;
+
+    do {
+      // Die API von Supabase unterstützt paging, aber das Property heißt manchmal unterschiedlich:
+      // Aktuell (Juli 2024) => "next_page_token"
+      // Wir holen 1000 User pro Seite (maximal erlaubt)
+      // "page" und "perPage" funktionieren in einigen Clients, aber falls nicht, nutze nur "nextPageToken"
+      const { data, error } = await supabase.auth.admin.listUsers({
+        page: nextPageToken,
+        perPage: 1000,
+      });
+
+      if (error) throw error;
+      const users = data?.users ?? [];
+      allUsers = allUsers.concat(users);
+      nextPageToken = (data as any).next_page_token || undefined;
+    } while (nextPageToken);
+
+    return res.status(200).json({ users: allUsers });
   } catch (err: any) {
     return res.status(500).json({ error: err.message || "Unknown error" });
   }
