@@ -32,7 +32,6 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
   useEffect(() => {
     async function fetchOrders() {
       setLoading(true);
-      // WICHTIG: Filtere auf week_menus.iso_week NICHT auf orders!
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -52,11 +51,6 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         .eq('week_menus.iso_week', isoWeek)
         .eq('week_menus.iso_year', isoYear);
 
-      // Debug-Ausgaben:
-      console.log("[DEBUG] Supabase data:", data);
-      console.log("[DEBUG] Supabase error:", error);
-      console.log("[DEBUG] Suchparameter:", { isoYear, isoWeek });
-
       if (error) {
         console.error(error);
         setOrders([]);
@@ -64,9 +58,8 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         return;
       }
 
-      // --- Nur Orders mit zugehörigem Menü übernehmen ---
       const formatted: OrderAdmin[] = (data ?? [])
-        .filter((row: any) => row.week_menus && row.week_menus.menu_number) // NUR Orders mit Menü!
+        .filter((row: any) => row.week_menus && row.week_menus.menu_number)
         .map((row: any) => {
           const wm = row.week_menus ?? {};
           return {
@@ -88,6 +81,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
     fetchOrders();
   }, [isoYear, isoWeek]);
 
+  // --- HIER UTF-8 BOM FIX ---
   function exportCSV() {
     const header = ["Vorname", "Nachname", "KW", "Tag", "Nr.", "Gericht", "Caterer"];
     const rows = orders.map(o => [
@@ -102,7 +96,9 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
       o.caterer_id ? CATERER_OPTIONS[o.caterer_id] ?? o.caterer_id : ""
     ]);
     const csv = [header, ...rows].map(r => r.join(";")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    // BOM für Excel-Export (damit Umlaute wie ö, ü, ä funktionieren)
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
