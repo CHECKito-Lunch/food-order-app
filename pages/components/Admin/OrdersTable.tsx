@@ -18,7 +18,7 @@ interface OrderAdmin {
   id: number;
   first_name: string;
   last_name: string;
-  location: string; // NEU: Standort
+  location: string; 
   iso_week: number | string;
   day_of_week: number | string;
   menu_number: number | string;
@@ -39,7 +39,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
           id,
           first_name,
           last_name,
-          location,                -- NEU: Feld auslesen!
+          location,                
           week_menu_id,
           week_menus (
             menu_number,
@@ -68,7 +68,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
             id: row.id,
             first_name: row.first_name ?? "",
             last_name: row.last_name ?? "",
-            location: row.location ?? "", // NEU
+            location: row.location ?? "", 
             iso_week: wm.iso_week ?? "",
             day_of_week: wm.day_of_week ?? "",
             menu_number: wm.menu_number ?? "",
@@ -142,7 +142,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
               <tr className="bg-blue-50 dark:bg-gray-900">
                 <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Vorname</th>
                 <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Nachname</th>
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Standort</th> {/* NEU */}
+                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Standort</th> 
                 <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">KW</th>
                 <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Tag</th>
                 <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Nr.</th>
@@ -155,7 +155,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
                 <tr key={o.id} className="hover:bg-blue-50 dark:hover:bg-gray-700">
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.first_name}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.last_name}</td>
-                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.location}</td> {/* NEU */}
+                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.location}</td> 
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.iso_week}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">
                     {typeof o.day_of_week === "number"
