@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useRouter } from 'next/router';
-import UsersTable     from '../components/Admin/UsersTable';
-import WeekMenuEditor from '../components/Admin/WeekMenuEditor';
-import OrdersTable    from '../components/Admin/OrdersTable';
+import UsersTable     from '../../components/Admin/UsersTable';
+import WeekMenuEditor from '../../components/Admin/WeekMenuEditor';
+import OrdersTable    from '../../components/Admin/OrdersTable';
 import dayjs          from '../../lib/dayjs';
 
 export default function Admin() {
