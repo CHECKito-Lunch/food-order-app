@@ -21,6 +21,7 @@ type Menu = {
   description: string;
   caterer_id: number;
   order_deadline: string;
+  is_veggie?: boolean;
 };
 
 type MenuPerDay = {
@@ -140,7 +141,8 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
           menu_number: prev[d].length + 1,
           description: '',
           caterer_id: CATERER_OPTIONS[0].id,
-          order_deadline: '' // Leeres Feld
+          order_deadline: '', 
+          is_veggie: false
         }
       ]
     }));
@@ -511,6 +513,7 @@ const handleSave = async () => {
                   + Menü
                 </button>
               </div>
+              
               <div className="space-y-2">
                 {(menus[Number(d)]?.length > 0)
                   ? menus[Number(d)].map((m, i) => (
@@ -528,6 +531,7 @@ const handleSave = async () => {
                         className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 flex-1 min-w-[100px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
                         placeholder="Bezeichnung"
                       />
+                      
                       <select
                         value={m.caterer_id}
                         onChange={e => handleMenuChange(Number(d), i, { caterer_id: Number(e.target.value) })}
@@ -548,6 +552,16 @@ const handleSave = async () => {
                       >
                         X
                       </button>
+                        <label className="flex items-center gap-1 text-xs text-green-600">
+    <input
+      type="checkbox"
+      checked={!!m.is_veggie}
+      onChange={e => handleMenuChange(Number(d), i, { is_veggie: e.target.checked })}
+      className="w-4 h-4 accent-green-500"
+      title="Vegetarisch"
+    />
+    🌱 Veggie
+  </label>
                     </div>
                   ))
                   : <div className="text-xs text-gray-400">Kein Menü für diesen Tag.</div>
