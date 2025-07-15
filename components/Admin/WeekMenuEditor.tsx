@@ -188,25 +188,33 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
   // Speichern/Upsert (Bestellfristen bleiben erhalten!)
   const handleSave = async () => {
-    const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
-      arr.map(m => ({
-        ...m,
+  const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
+    arr.map(m => {
+      // Nur vorhandene ID mitsenden, nie undefined/null!
+      const menu: any = {
         day_of_week: Number(d),
+        menu_number: m.menu_number,
+        description: m.description,
+        caterer_id: m.caterer_id,
+        order_deadline: m.order_deadline,
         iso_year: isoYear,
         iso_week: isoWeek,
-      }))
-    );
+      };
+      if (m.id) menu.id = m.id;
+      return menu;
+    })
+  );
 
-    const { error } = await supabase
-      .from('week_menus')
-      .upsert(allMenus, { onConflict: 'id' });
-    if (error) {
-      alert('Fehler beim Speichern: ' + error.message);
-      return;
-    }
-    alert('Woche gespeichert');
-    reloadMenus();
-  };
+  const { error } = await supabase
+    .from('week_menus')
+    .upsert(allMenus, { onConflict: 'id' });
+  if (error) {
+    alert('Fehler beim Speichern: ' + error.message);
+    return;
+  }
+  alert('Woche gespeichert');
+  reloadMenus();
+};
 
   // Woche leeren (ALLE Menüs + Orders der Woche löschen)
   const handleClearWeek = async () => {
