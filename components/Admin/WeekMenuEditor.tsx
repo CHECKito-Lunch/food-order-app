@@ -200,6 +200,7 @@ const handleSave = async () => {
         order_deadline: m.order_deadline,
         iso_year: isoYear,
         iso_week: isoWeek,
+        is_veggie: !!m.is_veggie,
       };
       if (typeof m.id === "number" && Number.isFinite(m.id)) {
         menu.id = m.id;
