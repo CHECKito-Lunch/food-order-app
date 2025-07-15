@@ -391,39 +391,52 @@ export default function Dashboard() {
                 <div className="text-gray-400 dark:text-gray-500 mb-2">Kein Menü eingetragen.</div>
               )}
               <div className="flex flex-col gap-3">
-                {menusOfDay.map(m => (
-                  <label key={m.id} className="flex items-center gap-3 cursor-pointer rounded-lg px-2 py-2 hover:bg-blue-50 dark:hover:bg-gray-700 transition leading-relaxed text-sm">
-                    <input
-                      type="radio"
-                      name={`order-day-${day}`}
-                      checked={selectedOrder?.week_menu_id === m.id}
-                      disabled={dayjs(m.order_deadline).isBefore(dayjs())}
-                      onChange={() => handleOrder(m)}
-                      className="accent-[#0056b3] dark:accent-blue-400 w-5 h-5"
-                    />
-                    <span>
-                      <span className="font-semibold">Nr:</span> {m.menu_number} – <span className="font-medium">{m.description}</span><br />
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        Deadline: {dayjs(m.order_deadline).format('DD.MM.YYYY HH:mm')}
-                        {dayjs(m.order_deadline).isBefore(dayjs()) && " (abgelaufen)"}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-                {selectedOrder && (
-                  <button
-                    className="mt-1 px-5 py-1.5 bg-red-600 dark:bg-red-700 text-white rounded-full text-sm font-semibold hover:bg-red-700 dark:hover:bg-red-800 shadow transition w-full sm:w-auto"
-                    onClick={async () => {
-                      await supabase.from('orders').delete().eq('id', selectedOrder.id);
-                      const { data: orderData } = await supabase
-                        .from('orders')
-                        .select('id, week_menu_id')
-                        .eq('user_id', user.id);
-                      setOrders((orderData ?? []) as Order[]);
-                    }}
-                  >Bestellung stornieren</button>
-                )}
-              </div>
+  {menusOfDay.map(m => {
+    const isDeadline = dayjs(m.order_deadline).isBefore(dayjs());
+    const isSelected = selectedOrder?.week_menu_id === m.id;
+    return (
+      <label
+        key={m.id}
+        className={`flex items-center gap-3 cursor-pointer rounded-lg px-2 py-2 hover:bg-blue-50 dark:hover:bg-gray-700 transition leading-relaxed text-sm
+          ${isDeadline ? 'opacity-85' : ''}`}
+      >
+        <input
+          type="radio"
+          name={`order-day-${day}`}
+          checked={isSelected}
+          disabled={isDeadline}
+          onChange={() => handleOrder(m)}
+          className={`w-5 h-5 
+            ${isDeadline && isSelected ? "accent-red-500" : "accent-[#0056b3] dark:accent-blue-400"}`}
+        />
+        <span>
+          <span className="font-semibold">Nr:</span> {m.menu_number} – <span className="font-medium">{m.description}</span>
+          <br />
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Deadline: {dayjs(m.order_deadline).format('DD.MM.YYYY HH:mm')}
+            {isDeadline && (
+              <span className="font-bold text-red-600 ml-2">(abgelaufen)</span>
+            )}
+          </span>
+        </span>
+      </label>
+    );
+  })}
+  {selectedOrder && (
+    <button
+      className="mt-1 px-5 py-1.5 bg-red-600 dark:bg-red-700 text-white rounded-full text-sm font-semibold hover:bg-red-700 dark:hover:bg-red-800 shadow transition w-full sm:w-auto"
+      onClick={async () => {
+        await supabase.from('orders').delete().eq('id', selectedOrder.id);
+        const { data: orderData } = await supabase
+          .from('orders')
+          .select('id, week_menu_id')
+          .eq('user_id', user.id);
+        setOrders((orderData ?? []) as Order[]);
+      }}
+    >Bestellung stornieren</button>
+  )}
+</div>
+
             </div>
           );
         })}
