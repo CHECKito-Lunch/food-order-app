@@ -371,7 +371,9 @@ export default function Dashboard() {
       <div className="space-y-6">
         {WEEKDAYS.map((dayName, idx) => {
           const day = idx + 1;
-          const menusOfDay = menus.filter(m => m.day_of_week === day);
+          const menusOfDay = menus
+    .filter(m => m.day_of_week === day)
+    .sort((a, b) => (a.menu_number ?? 0) - (b.menu_number ?? 0));
           const selectedOrder = getOrderForDay(day);
           const tagDatum = dayjs().year(selectedYear).week(selectedWeek).day(day);
           return (
