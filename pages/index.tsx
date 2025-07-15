@@ -391,37 +391,64 @@ export default function Dashboard() {
                 <div className="text-gray-400 dark:text-gray-500 mb-2">Kein Menü eingetragen.</div>
               )}
               <div className="flex flex-col gap-3">
-  {menusOfDay.map(m => {
-    const isDeadline = dayjs(m.order_deadline).isBefore(dayjs());
-    const isSelected = selectedOrder?.week_menu_id === m.id;
-    return (
-      <label
-        key={m.id}
-        className={`flex items-center gap-3 cursor-pointer rounded-lg px-2 py-2 hover:bg-blue-50 dark:hover:bg-gray-700 transition leading-relaxed text-sm
-          ${isDeadline ? 'opacity-85' : ''}`}
+{menusOfDay.map(m => {
+  const isDeadline = dayjs(m.order_deadline).isBefore(dayjs());
+  const checked = selectedOrder?.week_menu_id === m.id;
+  return (
+    <label
+      key={m.id}
+      className={`flex items-center gap-3 cursor-pointer rounded-lg px-2 py-2 transition leading-relaxed text-sm
+        ${isDeadline ? 'opacity-70' : 'hover:bg-blue-50 dark:hover:bg-gray-700'}`}
+    >
+      {/* Hidden native radio */}
+      <input
+        type="radio"
+        name={`order-day-${day}`}
+        checked={checked}
+        disabled={isDeadline}
+        onChange={() => handleOrder(m)}
+        className="peer sr-only"
+      />
+      {/* Custom Radio Button */}
+      <span
+        className={`
+          w-5 h-5 rounded-full border flex items-center justify-center
+          ${isDeadline
+            ? checked
+              ? 'border-red-600'
+              : 'border-red-300'
+            : checked
+              ? 'border-[#0056b3]'
+              : 'border-gray-300'}
+          bg-white
+          transition
+        `}
       >
-        <input
-          type="radio"
-          name={`order-day-${day}`}
-          checked={isSelected}
-          disabled={isDeadline}
-          onChange={() => handleOrder(m)}
-          className={`w-5 h-5 
-            ${isDeadline && isSelected ? "accent-red-500" : "accent-[#0056b3] dark:accent-blue-400"}`}
+        {/* Inner circle nur sichtbar wenn ausgewählt */}
+        <span
+          className={`
+            w-3 h-3 rounded-full
+            ${checked
+              ? isDeadline
+                ? 'bg-red-600'
+                : 'bg-[#0056b3]'
+              : ''}
+            transition
+          `}
         />
-        <span>
-          <span className="font-semibold">Nr:</span> {m.menu_number} – <span className="font-medium">{m.description}</span>
-          <br />
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            Deadline: {dayjs(m.order_deadline).format('DD.MM.YYYY HH:mm')}
-            {isDeadline && (
-              <span className="font-bold text-red-600 ml-2">(abgelaufen)</span>
-            )}
-          </span>
+      </span>
+      <span>
+        <span className="font-semibold">Nr:</span> {m.menu_number} – <span className="font-medium">{m.description}</span><br />
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          Deadline: {dayjs(m.order_deadline).format('DD.MM.YYYY HH:mm')}
+          {isDeadline && (
+            <b className="text-red-600 font-bold ml-1">(abgelaufen)</b>
+          )}
         </span>
-      </label>
-    );
-  })}
+      </span>
+    </label>
+  );
+})}
   {selectedOrder && (
     <button
       className="mt-1 px-5 py-1.5 bg-red-600 dark:bg-red-700 text-white rounded-full text-sm font-semibold hover:bg-red-700 dark:hover:bg-red-800 shadow transition w-full sm:w-auto"
