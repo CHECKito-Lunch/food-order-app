@@ -186,11 +186,10 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     setCopiedDay(null);
   };
 
- // Speichern/Upsert (Bestellfristen bleiben erhalten!)
+// Speichern/Upsert (Bestellfristen bleiben erhalten!)
 const handleSave = async () => {
   const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
     arr.map(m => {
-      // Basis-Objekt
       const menu: any = {
         day_of_week: Number(d),
         menu_number: m.menu_number,
@@ -200,30 +199,41 @@ const handleSave = async () => {
         iso_year: isoYear,
         iso_week: isoWeek,
       };
-      // Nur wenn die id VORHANDEN und eine ZAHL ist, übergeben wir sie!
       if (typeof m.id === "number" && Number.isFinite(m.id)) {
         menu.id = m.id;
       }
-      // Andernfalls KEIN id-Feld!
       return menu;
     })
   );
 
-  // Noch einmal sichergehen: KEIN undefined oder null in id!
-  allMenus.forEach(menu => {
-    if (typeof menu.id !== "number") {
-      delete menu.id;
-    }
-  });
-console.log(allMenus);
-  const { error } = await supabase
-    .from('week_menus')
-    .upsert(allMenus, { onConflict: 'id' });
+  // Menü-Listen splitten
+  const toInsert = allMenus.filter(menu => typeof menu.id !== "number" || !Number.isFinite(menu.id));
+  const toUpdate = allMenus.filter(menu => typeof menu.id === "number" && Number.isFinite(menu.id));
 
-  if (error) {
-    alert('Fehler beim Speichern: ' + error.message);
-    return;
+  // Zuerst UPDATE (upsert mit id)
+  if (toUpdate.length > 0) {
+    const { error: updateError } = await supabase
+      .from('week_menus')
+      .upsert(toUpdate, { onConflict: 'id' });
+    if (updateError) {
+      alert('Fehler beim Aktualisieren: ' + updateError.message);
+      return;
+    }
   }
+
+  // Dann INSERT (ohne id)
+  if (toInsert.length > 0) {
+    // IDs sicher entfernen!
+    const insertData = toInsert.map(({ id, ...rest }) => rest);
+    const { error: insertError } = await supabase
+      .from('week_menus')
+      .insert(insertData);
+    if (insertError) {
+      alert('Fehler beim Einfügen: ' + insertError.message);
+      return;
+    }
+  }
+
   alert('Woche gespeichert');
   reloadMenus();
 };
