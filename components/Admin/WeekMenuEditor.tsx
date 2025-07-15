@@ -199,11 +199,15 @@ const handleSave = async () => {
         iso_year: isoYear,
         iso_week: isoWeek,
       };
-      // Nur wirklich vorhandene ID setzen (nicht null, nicht undefined, nicht falsy)
-      if (typeof m.id === "number" && Number.isInteger(m.id)) menu.id = m.id;
+      // Sicherstellen, dass nur valide IDs gesetzt werden!
+      if (m.id != null && typeof m.id === "number" && Number.isFinite(m.id)) {
+        menu.id = m.id;
+      }
       return menu;
     })
   );
+  // ALLE Objekte OHNE id-Feld falls nicht gesetzt!
+  allMenus.forEach(obj => { if (typeof obj.id !== "number") delete obj.id; });
 
   const { error } = await supabase
     .from('week_menus')
