@@ -186,11 +186,10 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     setCopiedDay(null);
   };
 
-  // Speichern/Upsert (Bestellfristen bleiben erhalten!)
-  const handleSave = async () => {
+ // Speichern/Upsert (Bestellfristen bleiben erhalten!)
+const handleSave = async () => {
   const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
     arr.map(m => {
-      // Nur vorhandene ID mitsenden, nie undefined/null!
       const menu: any = {
         day_of_week: Number(d),
         menu_number: m.menu_number,
@@ -200,7 +199,8 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
         iso_year: isoYear,
         iso_week: isoWeek,
       };
-      if (m.id) menu.id = m.id;
+      // ID nur mitsenden, wenn wirklich vorhanden und nicht null/undefined!
+      if (typeof m.id !== "undefined" && m.id !== null) menu.id = m.id;
       return menu;
     })
   );
