@@ -190,6 +190,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 const handleSave = async () => {
   const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
     arr.map(m => {
+      // Basis-Objekt
       const menu: any = {
         day_of_week: Number(d),
         menu_number: m.menu_number,
@@ -199,16 +200,22 @@ const handleSave = async () => {
         iso_year: isoYear,
         iso_week: isoWeek,
       };
-      // Sicherstellen, dass nur valide IDs gesetzt werden!
-      if (m.id != null && typeof m.id === "number" && Number.isFinite(m.id)) {
+      // Nur wenn die id VORHANDEN und eine ZAHL ist, übergeben wir sie!
+      if (typeof m.id === "number" && Number.isFinite(m.id)) {
         menu.id = m.id;
       }
+      // Andernfalls KEIN id-Feld!
       return menu;
     })
   );
-  // ALLE Objekte OHNE id-Feld falls nicht gesetzt!
-  allMenus.forEach(obj => { if (typeof obj.id !== "number") delete obj.id; });
 
+  // Noch einmal sichergehen: KEIN undefined oder null in id!
+  allMenus.forEach(menu => {
+    if (typeof menu.id !== "number") {
+      delete menu.id;
+    }
+  });
+console.log(allMenus);
   const { error } = await supabase
     .from('week_menus')
     .upsert(allMenus, { onConflict: 'id' });
