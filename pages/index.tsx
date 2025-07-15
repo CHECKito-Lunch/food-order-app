@@ -404,41 +404,45 @@ export default function Dashboard() {
               >
                 {/* Custom Radio Button */}
                 <span
-                  className={`
-                    relative flex items-center justify-center
-                    w-5 h-5 min-w-[1.25rem] min-h-[1.25rem]
-                    rounded-full border-2
-                    ${checked
-                      ? isDeadline
-                        ? 'border-red-600'
-                        : 'border-[#0056b3]'
-                      : isDeadline
-                        ? 'border-red-300'
-                        : 'border-gray-300'
-                    }
-                    bg-white transition
-                  `}
-                >
-                  {/* Unsichtbares input-Element für Accessibility */}
-                  <input
-                    type="radio"
-                    name={`order-day-${day}`}
-                    checked={checked}
-                    disabled={isDeadline}
-                    onChange={() => handleOrder(m)}
-                    className="absolute opacity-0 w-0 h-0"
-                    tabIndex={isDeadline ? -1 : 0}
-                  />
-                  {/* Inner circle */}
-                  {checked && (
-                    <span
-                      className={`
-                        block w-2.5 h-2.5 rounded-full
-                        ${isDeadline ? 'bg-red-600' : 'bg-[#0056b3]'}
-                      `}
-                    />
-                  )}
-                </span>
+  className={`
+    relative flex items-center justify-center
+    w-5 h-5 min-w-[1.25rem] min-h-[1.25rem]
+    rounded-full border-2
+    ${checked
+      ? isDeadline
+        ? 'border-red-600'
+        : 'border-[#0056b3]'
+      : isDeadline
+        ? 'border-red-300'
+        : 'border-gray-300'
+    }
+    bg-white transition
+  `}
+>
+  {/* Unsichtbares input-Element für Accessibility */}
+  <input
+    type="radio"
+    name={`order-day-${day}`}
+    checked={checked}
+    disabled={isDeadline}
+    onChange={() => handleOrder(m)}
+    className="absolute opacity-0 w-full h-full m-0 cursor-pointer"
+    tabIndex={isDeadline ? -1 : 0}
+  />
+  {/* Inner circle */}
+  {checked && (
+    <span
+      className={`
+        pointer-events-none
+        absolute top-1/2 left-1/2
+        w-2.5 h-2.5
+        -translate-x-1/2 -translate-y-1/2
+        rounded-full
+        ${isDeadline ? 'bg-red-600' : 'bg-[#0056b3]'}
+      `}
+    />
+  )}
+</span>
                 <span>
                   <span className="font-semibold">Nr:</span> {m.menu_number} – <span className="font-medium">{m.description}</span><br />
                   <span className="text-xs text-gray-500 dark:text-gray-400">
