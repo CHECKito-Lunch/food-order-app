@@ -199,8 +199,8 @@ const handleSave = async () => {
         iso_year: isoYear,
         iso_week: isoWeek,
       };
-      // ID nur mitsenden, wenn wirklich vorhanden und nicht null/undefined!
-      if (typeof m.id !== "undefined" && m.id !== null) menu.id = m.id;
+      // Nur wirklich vorhandene ID setzen (nicht null, nicht undefined, nicht falsy)
+      if (typeof m.id === "number" && Number.isInteger(m.id)) menu.id = m.id;
       return menu;
     })
   );
@@ -208,6 +208,7 @@ const handleSave = async () => {
   const { error } = await supabase
     .from('week_menus')
     .upsert(allMenus, { onConflict: 'id' });
+
   if (error) {
     alert('Fehler beim Speichern: ' + error.message);
     return;
