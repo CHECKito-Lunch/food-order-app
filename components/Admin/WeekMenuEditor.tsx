@@ -22,6 +22,7 @@ type Menu = {
   caterer_id: number;
   order_deadline: string;
   is_veggie?: boolean;
+  is_vegan?: boolean;
 };
 
 type MenuPerDay = {
@@ -558,7 +559,18 @@ const handleSave = async () => {
       className="w-4 h-4 accent-green-500"
       title="Vegetarisch"
     />
-    🌱 Veggie
+    🥦 Veggie
+  
+  </label>
+  <label className="flex items-center gap-1 text-xs text-teal-700">
+    <input
+      type="checkbox"
+      checked={!!m.is_vegan}
+      onChange={e => handleMenuChange(Number(d), i, { is_vegan: e.target.checked })}
+      className="w-4 h-4 accent-teal-500"
+      title="Vegan"
+    />
+    🌱 Vegan
   </label>
                     </div>
                   ))

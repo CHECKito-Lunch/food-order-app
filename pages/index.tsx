@@ -14,6 +14,7 @@ interface WeekMenu {
   description: string;
   order_deadline: string;
   is_veggie?: boolean;
+  is_vegan?: boolean;
 }
 interface Order { id: number; week_menu_id: number; }
 interface Profile {
@@ -349,11 +350,14 @@ export default function Dashboard() {
                       <span>
                         <span className="font-semibold">Nr:</span> {m.menu_number} – 
                         <span className="font-medium">
-                          {m.description}
-                          {m.is_veggie ? (
-                            <span title="Vegetarisch" className="ml-1" role="img" aria-label="Vegetarisch">🌱</span>
-                          ) : null}
-                        </span>
+  {m.description}
+  {m.is_veggie && (
+    <span title="Vegetarisch" className="ml-1" role="img" aria-label="Vegetarisch">🥦</span>
+  )}
+  {m.is_vegan && (
+    <span title="Vegan" className="ml-1" role="img" aria-label="Vegan">🌱</span>
+  )}
+</span>
                         <br />
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           {/* Änderung 2: DEADLINE immer lokal anzeigen! */}
