@@ -273,7 +273,116 @@ export default function Dashboard() {
       </div>
 
       {/* Profilbereich AUSKLAPPBAR */}
-      {/* ... Profilbereich bleibt gleich ... */}
+      <div className="border border-blue-100 dark:border-gray-700 rounded-2xl shadow bg-white dark:bg-gray-800 p-4 md:p-6">
+        <button
+          className="flex items-center w-full justify-between text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-4 focus:outline-none"
+          onClick={() => setProfileOpen((v) => !v)}
+        >
+          <span className="flex items-center gap-2"><User className="w-6 h-6" /> Mein Profil</span>
+          {profileOpen ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+        </button>
+        {profileOpen && (
+          !editingProfile ? (
+            <div className="space-y-3 animate-fade-in">
+              <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
+                <div className="mb-1"><span className="font-semibold">Vorname:</span> <span>{profile?.first_name}</span></div>
+                <div><span className="font-semibold">Nachname:</span> <span>{profile?.last_name}</span></div>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
+                <div><span className="font-semibold">Standort:</span> <span>{profile?.location}</span></div>
+              </div>
+              <button
+                className="mt-4 flex items-center justify-center gap-2 px-5 py-1.5 rounded-full bg-[#0056b3] dark:bg-blue-600 text-white text-sm font-bold shadow hover:bg-blue-800 dark:hover:bg-blue-700 transition w-full sm:w-auto"
+                onClick={() => setEditingProfile(true)}
+              ><Edit className="w-4 h-4" /> Bearbeiten</button>
+              {/* Passwort ändern Button */}
+              <button
+                className="mt-2 flex items-center justify-center gap-2 px-5 py-1.5 rounded-full bg-gray-400 dark:bg-gray-700 text-white text-sm font-bold shadow hover:bg-gray-600 dark:hover:bg-gray-800 transition w-full sm:w-auto"
+                onClick={() => setShowPassword(v => !v)}
+              >
+                <KeyRound className="w-4 h-4" /> Passwort ändern
+              </button>
+              {showPassword && (
+                <div className="mt-4 border-t border-blue-100 dark:border-gray-700 pt-4">
+                  <input
+                    className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 mb-2 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                    type="password"
+                    value={password1}
+                    onChange={e => setPassword1(e.target.value)}
+                    placeholder="Neues Passwort"
+                    autoFocus
+                  />
+                  <input
+                    className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 mb-2 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                    type="password"
+                    value={password2}
+                    onChange={e => setPassword2(e.target.value)}
+                    placeholder="Passwort bestätigen"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full"
+                      onClick={handlePasswordChange}
+                      disabled={pwLoading}
+                      type="button"
+                    >
+                      {pwLoading ? "Speichert..." : "Passwort speichern"}
+                    </button>
+                    <button
+                      className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full"
+                      onClick={() => { setShowPassword(false); setPassword1(''); setPassword2(''); }}
+                      type="button"
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 animate-fade-in">
+              <input
+                className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                value={profileEdit.first_name || ''}
+                onChange={e => setProfileEdit(p => ({ ...p, first_name: e.target.value }))}
+                placeholder="Vorname"
+              />
+              <input
+                className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                value={profileEdit.last_name || ''}
+                onChange={e => setProfileEdit(p => ({ ...p, last_name: e.target.value }))}
+                placeholder="Nachname"
+              />
+              <select
+                className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                value={profileEdit.location || ''}
+                onChange={e => setProfileEdit(p => ({ ...p, location: e.target.value }))}
+                required
+              >
+                <option value="">Standort wählen…</option>
+                <option value="Nordpol">Nordpol</option>
+                <option value="Südpol">Südpol</option>
+              </select>
+              <div className="flex flex-col sm:flex-row gap-3 mt-2">
+                <button className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full sm:w-auto" onClick={saveProfile}>Speichern</button>
+                <button className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full sm:w-auto" onClick={() => setEditingProfile(false)}>Abbrechen</button>
+              </div>
+            </div>
+          )
+        )}
+      </div>
+ {/* >>>>>>  LEGENDE  <<<<<< */}
+    <div className="flex items-center gap-5 mb-2 text-sm">
+      <span className="flex items-center gap-1">
+        <span role="img" aria-label="Vegetarisch" className="text-lg">🥦</span>
+        Vegetarisch
+      </span>
+      <span className="flex items-center gap-1">
+        <span role="img" aria-label="Vegan" className="text-lg">🌱</span>
+        Vegan
+      </span>
+    </div>
+    {/* <<<<<<<<<<<<<<<< */}
 
       {/* Menü + Bestellungen */}
       <div className="space-y-6">
