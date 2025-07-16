@@ -357,7 +357,7 @@ export default function Dashboard() {
                         <br />
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           {/* Änderung 2: DEADLINE immer lokal anzeigen! */}
-                          Deadline: {dayjs.utc(m.order_deadline).local().format('DD.MM.YYYY HH:mm')}
+                          Deadline: {dayjs.utc(m.order_deadline).tz('Europe/Berlin').format('DD.MM.YYYY HH:mm')}
                           {isDeadline && (
                             <b className="text-red-600 font-bold ml-1">(abgelaufen)</b>
                           )}
