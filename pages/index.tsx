@@ -448,7 +448,7 @@ export default function Dashboard() {
                         </span>
                         <br />
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          Deadline: {dayjs(m.order_deadline).format('DD.MM.YYYY HH:mm')}
+                          Deadline: {dayjs.utc(m.order_deadline).local().format('DD.MM.YYYY HH:mm')}
                           {isDeadline && (
                             <b className="text-red-600 font-bold ml-1">(abgelaufen)</b>
                           )}
