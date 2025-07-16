@@ -58,11 +58,11 @@ function getDefaultDeadlineForCaterer(caterer_id: number, isoWeek: number, isoYe
   if (caterer_id === 1) { // Dean&David
     deadlineDate = new Date(menuDate);
     deadlineDate.setDate(menuDate.getDate() - 7);
-    deadlineDate.setHours(12, 0, 0, 0);
+    deadlineDate.setHours(10, 0, 0, 0);
   } else { // Merkel/Bloi
     deadlineDate = new Date(menuDate);
     deadlineDate.setDate(menuDate.getDate() - 1);
-    deadlineDate.setHours(12, 0, 0, 0);
+    deadlineDate.setHours(10, 0, 0, 0);
   }
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${deadlineDate.getFullYear()}-${pad(deadlineDate.getMonth() + 1)}-${pad(deadlineDate.getDate())}T${pad(deadlineDate.getHours())}:00`;
