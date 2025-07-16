@@ -140,7 +140,8 @@ const reloadMenus = async () => {
           description: '',
           caterer_id: CATERER_OPTIONS[0].id,
           order_deadline: '', 
-          is_veggie: false
+          is_veggie: false,
+          is_vegan: false
         }
       ]
     }));
