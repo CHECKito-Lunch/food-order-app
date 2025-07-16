@@ -86,28 +86,27 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   const [reloadTime, setReloadTime] = useState('');
 
   // --- Menü-Laden ausgelagert ---
-  const reloadMenus = async () => {
-    const { data: loaded, error } = await supabase
-      .from('week_menus')
-      .select('*')
-      .eq('iso_year', isoYear)
-      .eq('iso_week', isoWeek);
+const reloadMenus = async () => {
+  const { data: loaded, error } = await supabase
+    .from('week_menus')
+    .select('*')
+    .eq('iso_year', isoYear)
+    .eq('iso_week', isoWeek);
 
-    const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-    (loaded || []).forEach((m: any) => {
-      const day = Number(m.day_of_week);
-      if (grouped[day]) {
-        grouped[day].push({
-          ...m,
-          order_deadline: m.order_deadline ?? ''
-        });
-      }
-    });
-    setMenus(grouped);
-    setUndoStack([]);
-    setReloadTime(new Date().toLocaleTimeString('de-DE'));
-  };
-
+  const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+  (loaded || []).forEach((m: any) => {
+    const day = Number(m.day_of_week);
+    if (grouped[day]) {
+      grouped[day].push({
+        ...m,
+        order_deadline: m.order_deadline ? m.order_deadline.slice(0, 16) : '' // <-- fix!
+      });
+    }
+  });
+  setMenus(grouped);
+  setUndoStack([]);
+  setReloadTime(new Date().toLocaleTimeString('de-DE'));
+};
   // Initiales Laden
   useEffect(() => {
     reloadMenus();
