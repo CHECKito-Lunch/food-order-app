@@ -28,6 +28,7 @@ interface Profile {
 export default function Dashboard() {
   const today = dayjs();
   const router = useRouter();
+  const nextWeek = today.add(1, 'week');
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [selectedWeek, setSelectedWeek] = useState(today.week());
   const [menus, setMenus] = useState<WeekMenu[]>([]);
@@ -448,7 +449,7 @@ export default function Dashboard() {
                         </span>
                         <br />
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          Deadline: {dayjs.utc(m.order_deadline).local().format('DD.MM.YYYY HH:mm')}
+                          Deadline: {dayjs(m.order_deadline).format('DD.MM.YYYY HH:mm')}
                           {isDeadline && (
                             <b className="text-red-600 font-bold ml-1">(abgelaufen)</b>
                           )}

@@ -99,9 +99,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       if (grouped[day]) {
         grouped[day].push({
           ...m,
-          order_deadline: m.order_deadline
-            ? new Date(m.order_deadline).toISOString().slice(0, 16)
-            : ''
+          order_deadline: m.order_deadline ?? ''
         });
       }
     });
