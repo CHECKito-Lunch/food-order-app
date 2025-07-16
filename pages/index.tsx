@@ -62,7 +62,7 @@ export default function Dashboard() {
     (async () => {
       const { data: menuData } = await supabase
         .from('week_menus')
-        .select('id, day_of_week, menu_number, description, order_deadline, is_veggie')
+        .select('id, day_of_week, menu_number, description, order_deadline, is_veggie, is_vegan')
         .eq('iso_year', selectedYear)
         .eq('iso_week', selectedWeek)
         .order('day_of_week');
