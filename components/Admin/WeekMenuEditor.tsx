@@ -200,6 +200,7 @@ const handleSave = async () => {
         iso_year: isoYear,
         iso_week: isoWeek,
         is_veggie: !!m.is_veggie,
+        is_vegan: !!m.is_vegan,
       };
       if (typeof m.id === "number" && Number.isFinite(m.id)) {
         menu.id = m.id;
