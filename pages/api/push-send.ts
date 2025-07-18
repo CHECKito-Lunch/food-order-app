@@ -98,3 +98,6 @@ export default async function handler(
 
   res.status(200).json({ ok: true, sent });
 }
+export const config = {
+  runtime: 'nodejs',
+  };
