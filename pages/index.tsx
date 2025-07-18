@@ -25,11 +25,25 @@ interface Profile {
   email: string;
   role: string;
 }
+// PUSH Notifications - Helper
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = typeof window !== 'undefined'
+    ? window.atob(base64)
+    : Buffer.from(base64, 'base64').toString('binary');
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; ++i) output[i] = raw.charCodeAt(i);
+  return output;
+}
 
 export default function Dashboard() {
   const today = dayjs();
   const nextWeek = today.add(1, 'week');
   const router = useRouter();
+// PUSH Notifications
+const [pushEnabled, setPushEnabled] = useState(false);
+const [pushError, setPushError] = useState('');
 
   // Änderung 1: Standardmäßig immer nächste Woche vorauswählen!
   const [selectedYear, setSelectedYear] = useState(nextWeek.year());
@@ -383,6 +397,41 @@ export default function Dashboard() {
       </span>
     </div>
     {/* <<<<<<<<<<<<<<<< */}
+{/* PUSH-BENACHRICHTIGUNGEN */}
+<div className="mb-4">
+  <button
+    className="bg-green-700 hover:bg-green-800 text-white rounded-full px-4 py-2 text-sm font-semibold shadow"
+    disabled={pushEnabled}
+    onClick={async () => {
+      setPushError('');
+      try {
+        const resp = await fetch('/api/public-vapid-key');
+        const { key } = await resp.json();
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(key)
+        });
+        await fetch('/api/save-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: sub.endpoint,
+            keys: sub.toJSON().keys,
+            user: { id: user.id }
+          })
+        });
+        setPushEnabled(true);
+      } catch (e) {
+        if (e instanceof Error) setPushError('Push konnte nicht aktiviert werden: ' + e.message);
+        else setPushError('Push konnte nicht aktiviert werden: ' + String(e));
+      }
+    }}
+  >
+    {pushEnabled ? 'Push aktiviert' : 'Push-Benachrichtigungen aktivieren'}
+  </button>
+  {pushError && <div className="text-red-600 mt-1 text-sm">{pushError}</div>}
+</div>
 
       {/* Menü + Bestellungen */}
       <div className="space-y-6">
