@@ -32,3 +32,4 @@ self.addEventListener('notificationclick', function (event) {
     })
   );
 });
+// Update trigger
