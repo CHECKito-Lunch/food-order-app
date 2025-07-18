@@ -7,7 +7,7 @@ self.addEventListener('push', function (event) {
     icon: '/favicon.ico',
     badge: '/favicon.ico',
     data: {
-      url: data.url || '/' // URL für notificationclick
+      url: data.url || 'https://food-order-app-theta-eight.vercel.app/' // URL für notificationclick
     }
   };
 
@@ -32,4 +32,4 @@ self.addEventListener('notificationclick', function (event) {
     })
   );
 });
-// Update trigger
+
