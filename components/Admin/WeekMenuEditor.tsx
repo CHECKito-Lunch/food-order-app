@@ -87,27 +87,28 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   const [reloadTime, setReloadTime] = useState('');
 
   // --- Menü-Laden ausgelagert ---
-const reloadMenus = async () => {
-  const { data: loaded, error } = await supabase
-    .from('week_menus')
-    .select('*')
-    .eq('iso_year', isoYear)
-    .eq('iso_week', isoWeek);
+  const reloadMenus = async () => {
+    const { data: loaded, error } = await supabase
+      .from('week_menus')
+      .select('*')
+      .eq('iso_year', isoYear)
+      .eq('iso_week', isoWeek);
 
-  const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-  (loaded || []).forEach((m: any) => {
-    const day = Number(m.day_of_week);
-    if (grouped[day]) {
-      grouped[day].push({
-        ...m,
-        order_deadline: m.order_deadline ? m.order_deadline.slice(0, 16) : '' // <-- fix!
-      });
-    }
-  });
-  setMenus(grouped);
-  setUndoStack([]);
-  setReloadTime(new Date().toLocaleTimeString('de-DE'));
-};
+    const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    (loaded || []).forEach((m: any) => {
+      const day = Number(m.day_of_week);
+      if (grouped[day]) {
+        grouped[day].push({
+          ...m,
+          order_deadline: m.order_deadline ? m.order_deadline.slice(0, 16) : '' // <-- fix!
+        });
+      }
+    });
+    setMenus(grouped);
+    setUndoStack([]);
+    setReloadTime(new Date().toLocaleTimeString('de-DE'));
+  };
+
   // Initiales Laden
   useEffect(() => {
     reloadMenus();
@@ -187,64 +188,114 @@ const reloadMenus = async () => {
     setCopiedDay(null);
   };
 
-// Speichern/Upsert (Bestellfristen bleiben erhalten!)
-const handleSave = async () => {
-  const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
-    arr.map(m => {
-      const menu: any = {
-        day_of_week: Number(d),
-        menu_number: m.menu_number,
-        description: m.description,
-        caterer_id: m.caterer_id,
-        order_deadline: m.order_deadline,
-        iso_year: isoYear,
-        iso_week: isoWeek,
-        is_veggie: !!m.is_veggie,
-        is_vegan: !!m.is_vegan,
-      };
-      if (typeof m.id === "number" && Number.isFinite(m.id)) {
-        menu.id = m.id;
+  // =============================
+  // SPEICHERN: Menüs synchronisieren,
+  // NIE Orders löschen, Menüs nur ohne Orders löschen!
+  // =============================
+  const handleSave = async () => {
+    // 1. Lade alle Menüs der Woche aus der DB
+    const { data: dbMenus, error: loadError } = await supabase
+      .from('week_menus')
+      .select('id')
+      .eq('iso_year', isoYear)
+      .eq('iso_week', isoWeek);
+
+    if (loadError) {
+      alert('Fehler beim Laden der alten Menüs: ' + loadError.message);
+      return;
+    }
+
+    // 2. IDs der aktuellen Menüs (aus dem State)
+    const currentIds = Object.values(menus)
+      .flat()
+      .map(m => m.id)
+      .filter(id => typeof id === 'number' && Number.isFinite(id));
+
+    // 3. Finde alte Menü-IDs, die entfernt wurden (und potenziell gelöscht werden sollen)
+    const idsToDelete = (dbMenus ?? [])
+      .map(m => m.id)
+      .filter(id => !currentIds.includes(id));
+
+    let deletableMenuIds: number[] = [];
+    if (idsToDelete.length > 0) {
+      // 4. Prüfe, ob zu diesen Menüs Orders existieren
+      const { data: orderCheck, error: orderErr } = await supabase
+        .from('orders')
+        .select('week_menu_id')
+        .in('week_menu_id', idsToDelete);
+
+      if (orderErr) {
+        alert('Fehler beim Prüfen der Orders: ' + orderErr.message);
+        return;
       }
-      return menu;
-    })
-  );
-
-  // Menü-Listen splitten
-  const toInsert = allMenus.filter(menu => typeof menu.id !== "number" || !Number.isFinite(menu.id));
-  const toUpdate = allMenus.filter(menu => typeof menu.id === "number" && Number.isFinite(menu.id));
-
-  // Zuerst UPDATE (upsert mit id)
-  if (toUpdate.length > 0) {
-    const { error: updateError } = await supabase
-      .from('week_menus')
-      .upsert(toUpdate, { onConflict: 'id' });
-    if (updateError) {
-      alert('Fehler beim Aktualisieren: ' + updateError.message);
-      return;
+      const menuIdsWithOrders = new Set((orderCheck ?? []).map(o => o.week_menu_id));
+      deletableMenuIds = idsToDelete.filter(id => !menuIdsWithOrders.has(id));
     }
-  }
 
-  // Dann INSERT (ohne id)
-  if (toInsert.length > 0) {
-    // IDs sicher entfernen!
-    const insertData = toInsert.map(({ id, ...rest }) => rest);
-    const { error: insertError } = await supabase
-      .from('week_menus')
-      .insert(insertData);
-    if (insertError) {
-      alert('Fehler beim Einfügen: ' + insertError.message);
-      return;
+    // 5. Menüs ohne Orders löschen (Orders werden NIE gelöscht!)
+    if (deletableMenuIds.length > 0) {
+      const { error: delErr } = await supabase
+        .from('week_menus')
+        .delete()
+        .in('id', deletableMenuIds);
+      if (delErr) {
+        alert('Fehler beim Löschen alter Menüs: ' + delErr.message);
+        return;
+      }
     }
-  }
 
-  alert('Woche gespeichert');
-  reloadMenus();
-};
+    // 6. Upsert/Insert Menüs wie gehabt
+    const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
+  arr.map(m => {
+    const menu = {
+      day_of_week: Number(d),
+      menu_number: m.menu_number,
+      description: m.description,
+      caterer_id: m.caterer_id,
+      order_deadline: m.order_deadline,
+      iso_year: isoYear,
+      iso_week: isoWeek,
+      is_veggie: !!m.is_veggie,
+      is_vegan: !!m.is_vegan,
+      ...(typeof m.id === "number" && Number.isFinite(m.id) ? { id: m.id } : {}),
+    };
+    return menu;
+  })
+);
+    const toInsert = allMenus.filter(menu => typeof menu.id !== "number" || !Number.isFinite(menu.id));
+    const toUpdate = allMenus.filter(menu => typeof menu.id === "number" && Number.isFinite(menu.id));
 
-  // Woche leeren (ALLE Menüs + Orders der Woche löschen)
+    // 7. Upsert (Update) existierende Menüs
+    if (toUpdate.length > 0) {
+      const { error: updateError } = await supabase
+        .from('week_menus')
+        .upsert(toUpdate, { onConflict: 'id' });
+      if (updateError) {
+        alert('Fehler beim Aktualisieren: ' + updateError.message);
+        return;
+      }
+    }
+    // 8. Insert neue Menüs
+    if (toInsert.length > 0) {
+      const insertData = toInsert.map(({ id, ...rest }) => rest);
+      const { error: insertError } = await supabase
+        .from('week_menus')
+        .insert(insertData);
+      if (insertError) {
+        alert('Fehler beim Einfügen: ' + insertError.message);
+        return;
+      }
+    }
+
+    alert('Woche gespeichert');
+    reloadMenus();
+  };
+
+  // Woche leeren (ALLE Menüs löschen, aber Orders NIEMALS löschen! Menüs mit Orders bleiben erhalten)
   const handleClearWeek = async () => {
-    if (!window.confirm('Willst du wirklich die ganze Woche löschen? Alle Menüs und zugehörige Bestellungen dieser Woche werden entfernt!')) return;
-    
+    if (!window.confirm('Willst du wirklich alle Menüs der Woche löschen? Nur Menüs ohne Bestellungen werden entfernt!')) return;
+
+    // Alle Menü-IDs dieser Woche
     const { data: menusToDelete, error: menuLoadError } = await supabase
       .from('week_menus')
       .select('id')
@@ -258,32 +309,37 @@ const handleSave = async () => {
 
     const menuIds = (menusToDelete ?? []).map((m: any) => m.id);
 
-    // Orders löschen
+    let deletableMenuIds: number[] = [];
     if (menuIds.length > 0) {
-      const { error: ordersError } = await supabase
+      const { data: orderCheck, error: orderErr } = await supabase
         .from('orders')
-        .delete()
+        .select('week_menu_id')
         .in('week_menu_id', menuIds);
-      if (ordersError) {
-        alert('Fehler beim Löschen der Bestellungen: ' + ordersError.message);
+
+      if (orderErr) {
+        alert('Fehler beim Prüfen der Orders: ' + orderErr.message);
+        return;
+      }
+
+      const menuIdsWithOrders = new Set((orderCheck ?? []).map(o => o.week_menu_id));
+      deletableMenuIds = menuIds.filter(id => !menuIdsWithOrders.has(id));
+    }
+
+    // Menüs ohne Orders löschen
+    if (deletableMenuIds.length > 0) {
+      const { error: menusError } = await supabase
+        .from('week_menus')
+        .delete()
+        .in('id', deletableMenuIds);
+      if (menusError) {
+        alert('Fehler beim Löschen der Menüs: ' + menusError.message);
         return;
       }
     }
 
-    // Menüs löschen
-    const { error: menusError } = await supabase
-      .from('week_menus')
-      .delete()
-      .eq('iso_year', isoYear)
-      .eq('iso_week', isoWeek);
-
-    if (menusError) {
-      alert('Fehler beim Löschen der Menüs: ' + menusError.message);
-      return;
-    }
     setMenus({ 1: [], 2: [], 3: [], 4: [], 5: [] });
     setUndoStack([]);
-    alert('Woche wurde komplett geleert!');
+    alert('Alle Menüs ohne Bestellungen wurden gelöscht!');
     reloadMenus();
   };
 
