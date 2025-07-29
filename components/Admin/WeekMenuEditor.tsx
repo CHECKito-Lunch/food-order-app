@@ -35,6 +35,7 @@ type Preset = {
   menus: MenuPerDay;
 };
 
+// === Hilfsfunktion: Datum zu Wochentag (Mo–Fr) der ISO-KW berechnen ===
 function getDateOfISOWeek(isoWeek: number, isoYear: number, isoWeekday: number): Date {
   const simple = new Date(isoYear, 0, 1 + (isoWeek - 1) * 7);
   const dow = simple.getDay();
@@ -51,6 +52,7 @@ function formatDateDE(date: Date) {
     .toString().padStart(2, '0')}.${date.getFullYear()}`;
 }
 
+// === Automatische Deadline je Caterer ===
 function getDefaultDeadlineForCaterer(caterer_id: number, isoWeek: number, isoYear: number, day: number) {
   const menuDate = getDateOfISOWeek(isoWeek, isoYear, day);
   let deadlineDate;
@@ -86,14 +88,11 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
   // --- Menü-Laden ausgelagert ---
   const reloadMenus = async () => {
-    console.log('[reloadMenus] Lade week_menus:', { isoYear, isoWeek });
     const { data: loaded, error } = await supabase
       .from('week_menus')
       .select('*')
       .eq('iso_year', isoYear)
       .eq('iso_week', isoWeek);
-
-    if (error) console.error('[reloadMenus] Fehler beim Laden:', error);
 
     const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
     (loaded || []).forEach((m: any) => {
@@ -181,7 +180,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     pushUndo();
     setMenus(prev => ({
       ...prev,
-      [pasteTarget]: prev[copiedDay].map(m => ({
+      [pasteTarget]: prev[copiedDay].map(({ id, ...m }) => ({
         ...m,
         order_deadline: '' // Deadline wird geleert!
       }))
@@ -194,10 +193,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   // NIE Orders löschen, Menüs nur ohne Orders löschen!
   // =============================
   const handleSave = async () => {
-    console.log('[handleSave] START', { isoYear, isoWeek, menus });
-
     // 1. Lade alle Menüs der Woche aus der DB
-    console.log('[handleSave] Lade vorhandene week_menus:', { isoYear, isoWeek });
     const { data: dbMenus, error: loadError } = await supabase
       .from('week_menus')
       .select('id')
@@ -205,7 +201,6 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       .eq('iso_week', isoWeek);
 
     if (loadError) {
-      console.error('[handleSave] Fehler beim Laden der alten Menüs:', loadError);
       alert('Fehler beim Laden der alten Menüs: ' + loadError.message);
       return;
     }
@@ -221,19 +216,15 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       .map(m => m.id)
       .filter(id => !currentIds.includes(id));
 
-    console.log('[handleSave] Zu prüfende zu löschende Menü-IDs:', idsToDelete);
-
     let deletableMenuIds: number[] = [];
     if (idsToDelete.length > 0) {
       // 4. Prüfe, ob zu diesen Menüs Orders existieren
-      console.log('[handleSave] Prüfe Orders für zu löschende Menü-IDs:', idsToDelete);
       const { data: orderCheck, error: orderErr } = await supabase
         .from('orders')
         .select('week_menu_id')
         .in('week_menu_id', idsToDelete);
 
       if (orderErr) {
-        console.error('[handleSave] Fehler beim Prüfen der Orders:', orderErr);
         alert('Fehler beim Prüfen der Orders: ' + orderErr.message);
         return;
       }
@@ -243,13 +234,11 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
     // 5. Menüs ohne Orders löschen (Orders werden NIE gelöscht!)
     if (deletableMenuIds.length > 0) {
-      console.log('[handleSave] Lösche week_menus ohne Orders:', deletableMenuIds);
       const { error: delErr } = await supabase
         .from('week_menus')
         .delete()
         .in('id', deletableMenuIds);
       if (delErr) {
-        console.error('[handleSave] Fehler beim Löschen alter Menüs:', delErr);
         alert('Fehler beim Löschen alter Menüs: ' + delErr.message);
         return;
       }
@@ -277,30 +266,25 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     const toUpdate = allMenus.filter(menu => typeof menu.id === "number" && Number.isFinite(menu.id));
 
     if (toUpdate.length > 0) {
-      console.log('[handleSave] Upsert (Update) week_menus:', toUpdate);
       const { error: updateError } = await supabase
         .from('week_menus')
         .upsert(toUpdate, { onConflict: 'id' });
       if (updateError) {
-        console.error('[handleSave] Fehler beim Aktualisieren:', updateError);
         alert('Fehler beim Aktualisieren: ' + updateError.message);
         return;
       }
     }
     if (toInsert.length > 0) {
-      const insertData = toInsert.map(({ id, ...rest }) => rest);
-      console.log('[handleSave] Insert week_menus:', insertData);
+      const insertData = toInsert.map(({ id, ...rest }) => rest); // id NIE mitsenden!
       const { error: insertError } = await supabase
         .from('week_menus')
         .insert(insertData);
       if (insertError) {
-        console.error('[handleSave] Fehler beim Einfügen:', insertError);
         alert('Fehler beim Einfügen: ' + insertError.message);
         return;
       }
     }
 
-    console.log('[handleSave] SPEICHERN FERTIG', { isoYear, isoWeek });
     alert('Woche gespeichert');
     reloadMenus();
   };
@@ -310,7 +294,6 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     if (!window.confirm('Willst du wirklich alle Menüs der Woche löschen? Nur Menüs ohne Bestellungen werden entfernt!')) return;
 
     // Alle Menü-IDs dieser Woche
-    console.log('[handleClearWeek] Lade week_menus für:', { isoYear, isoWeek });
     const { data: menusToDelete, error: menuLoadError } = await supabase
       .from('week_menus')
       .select('id')
@@ -318,7 +301,6 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       .eq('iso_week', isoWeek);
 
     if (menuLoadError) {
-      console.error('[handleClearWeek] Fehler beim Laden der Menüs:', menuLoadError);
       alert('Fehler beim Laden der Menüs: ' + menuLoadError.message);
       return;
     }
@@ -327,14 +309,12 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
     let deletableMenuIds: number[] = [];
     if (menuIds.length > 0) {
-      console.log('[handleClearWeek] Prüfe Orders für Menü-IDs:', menuIds);
       const { data: orderCheck, error: orderErr } = await supabase
         .from('orders')
         .select('week_menu_id')
         .in('week_menu_id', menuIds);
 
       if (orderErr) {
-        console.error('[handleClearWeek] Fehler beim Prüfen der Orders:', orderErr);
         alert('Fehler beim Prüfen der Orders: ' + orderErr.message);
         return;
       }
@@ -345,13 +325,11 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
     // Menüs ohne Orders löschen
     if (deletableMenuIds.length > 0) {
-      console.log('[handleClearWeek] Lösche week_menus ohne Orders:', deletableMenuIds);
       const { error: menusError } = await supabase
         .from('week_menus')
         .delete()
         .in('id', deletableMenuIds);
       if (menusError) {
-        console.error('[handleClearWeek] Fehler beim Löschen der Menüs:', menusError);
         alert('Fehler beim Löschen der Menüs: ' + menusError.message);
         return;
       }
@@ -363,92 +341,80 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     reloadMenus();
   };
 
-
   // Preset speichern (Deadlines nicht mitspeichern!)
-const handleSavePreset = async () => {
-  if (!presetName) return alert("Bitte Preset-Namen eingeben!");
-  const cleanMenus: MenuPerDay = {};
-  Object.entries(menus).forEach(([d, arr]) => {
-    cleanMenus[Number(d)] = arr.map(m => ({
-      ...m,
-      order_deadline: '' // explizit leeren!
-    }));
-  });
-  const presetData = { name: presetName, menus: JSON.stringify(cleanMenus) };
-  console.log('[Preset] Speichere Preset:', presetData);
-  const { error } = await supabase.from('week_menu_presets').insert(presetData);
-  if (!error) {
-    setPresetName('');
-    alert("Preset gespeichert!");
+  const handleSavePreset = async () => {
+    if (!presetName) return alert("Bitte Preset-Namen eingeben!");
+    const cleanMenus: MenuPerDay = {};
+    Object.entries(menus).forEach(([d, arr]) => {
+      cleanMenus[Number(d)] = arr.map(({ id, ...m }) => ({
+        ...m,
+        order_deadline: '' // explizit leeren!
+      }));
+    });
+    const presetData = { name: presetName, menus: JSON.stringify(cleanMenus) };
+    const { error } = await supabase.from('week_menu_presets').insert(presetData);
+    if (!error) {
+      setPresetName('');
+      alert("Preset gespeichert!");
+      const { data } = await supabase.from('week_menu_presets').select('*');
+      setPresets((data || []).map((p: any) => ({
+        ...p,
+        menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
+      })));
+    }
+  };
+
+  // Preset laden (Deadlines leer setzen, KEINE id übernehmen!)
+  const handleTryLoadPreset = () => {
+    if (!selectedPresetId) return;
+    setConfirm({ action: "load-preset", payload: selectedPresetId });
+  };
+  const handleLoadPreset = () => {
+    if (!selectedPresetId) return;
+    const preset = presets.find(p => p.id === selectedPresetId);
+    if (preset) {
+      pushUndo();
+      const loadedMenus: MenuPerDay = {};
+      Object.entries(preset.menus).forEach(([d, arr]) => {
+        loadedMenus[Number(d)] = arr.map(({ id, ...m }) => ({
+          ...m,
+          order_deadline: ''
+        }));
+      });
+      setMenus(loadedMenus);
+    }
+    setConfirm(null);
+  };
+
+  // Preset umbenennen
+  const handleEditPresetName = (id: number, name: string) => {
+    setEditPresetId(id);
+    setEditPresetName(name);
+  };
+  const handleSavePresetName = async () => {
+    if (!editPresetId || !editPresetName) return;
+    await supabase.from('week_menu_presets').update({ name: editPresetName }).eq('id', editPresetId);
+    setEditPresetId(null);
+    setEditPresetName('');
     const { data } = await supabase.from('week_menu_presets').select('*');
     setPresets((data || []).map((p: any) => ({
       ...p,
       menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
     })));
-    console.log('[Preset] Neuer Stand nach speichern:', data);
-  }
-};
+  };
 
-// Preset laden (Deadlines leer setzen!)
-const handleTryLoadPreset = () => {
-  if (!selectedPresetId) return;
-  console.log('[Preset] Versuche Preset zu laden:', selectedPresetId);
-  setConfirm({ action: "load-preset", payload: selectedPresetId });
-};
-const handleLoadPreset = () => {
-  if (!selectedPresetId) return;
-  const preset = presets.find(p => p.id === selectedPresetId);
-  if (preset) {
-    pushUndo();
-    const loadedMenus: MenuPerDay = {};
-    Object.entries(preset.menus).forEach(([d, arr]) => {
-      loadedMenus[Number(d)] = arr.map(m => ({
-        ...m,
-        order_deadline: ''
-      }));
-    });
-    setMenus(loadedMenus);
-    console.log('[Preset] Preset geladen:', preset);
-  }
-  setConfirm(null);
-};
-
-// Preset umbenennen
-const handleEditPresetName = (id: number, name: string) => {
-  setEditPresetId(id);
-  setEditPresetName(name);
-  console.log('[Preset] Editiere Preset-Namen:', { id, name });
-};
-const handleSavePresetName = async () => {
-  if (!editPresetId || !editPresetName) return;
-  console.log('[Preset] Speichere neuen Namen für Preset:', { editPresetId, editPresetName });
-  await supabase.from('week_menu_presets').update({ name: editPresetName }).eq('id', editPresetId);
-  setEditPresetId(null);
-  setEditPresetName('');
-  const { data } = await supabase.from('week_menu_presets').select('*');
-  setPresets((data || []).map((p: any) => ({
-    ...p,
-    menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
-  })));
-};
-
-// Preset löschen (mit Bestätigung)
-const handleTryDeletePreset = (id: number) => {
-  setConfirm({ action: "delete-preset", payload: id });
-  console.log('[Preset] Löschen wird vorbereitet für:', id);
-};
-const handleDeletePreset = async () => {
-  if (!confirm?.payload) return;
-  console.log('[Preset] Lösche Preset:', confirm.payload);
-  await supabase.from('week_menu_presets').delete().eq('id', confirm.payload);
-  setConfirm(null);
-  const { data } = await supabase.from('week_menu_presets').select('*');
-  setPresets((data || []).map((p: any) => ({
-    ...p,
-    menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
-  })));
-  console.log('[Preset] Neuer Stand nach löschen:', data);
-};
+  // Preset löschen (mit Bestätigung)
+  const handleTryDeletePreset = (id: number) => setConfirm({ action: "delete-preset", payload: id });
+  const handleDeletePreset = async () => {
+    if (!confirm?.payload) return;
+    await supabase.from('week_menu_presets').delete().eq('id', confirm.payload);
+    setConfirm(null);
+    const { data } = await supabase.from('week_menu_presets').select('*');
+    setPresets((data || []).map((p: any) => ({
+      ...p,
+      menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
+    })));
+  };
 
   // Export als CSV
   const exportCSV = () => {
