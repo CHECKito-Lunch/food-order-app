@@ -365,79 +365,90 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
 
   // Preset speichern (Deadlines nicht mitspeichern!)
-  const handleSavePreset = async () => {
-    if (!presetName) return alert("Bitte Preset-Namen eingeben!");
-    const cleanMenus: MenuPerDay = {};
-    Object.entries(menus).forEach(([d, arr]) => {
-      cleanMenus[Number(d)] = arr.map(m => ({
+const handleSavePreset = async () => {
+  if (!presetName) return alert("Bitte Preset-Namen eingeben!");
+  const cleanMenus: MenuPerDay = {};
+  Object.entries(menus).forEach(([d, arr]) => {
+    cleanMenus[Number(d)] = arr.map(m => ({
+      ...m,
+      order_deadline: '' // explizit leeren!
+    }));
+  });
+  const presetData = { name: presetName, menus: JSON.stringify(cleanMenus) };
+  console.log('[Preset] Speichere Preset:', presetData);
+  const { error } = await supabase.from('week_menu_presets').insert(presetData);
+  if (!error) {
+    setPresetName('');
+    alert("Preset gespeichert!");
+    const { data } = await supabase.from('week_menu_presets').select('*');
+    setPresets((data || []).map((p: any) => ({
+      ...p,
+      menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
+    })));
+    console.log('[Preset] Neuer Stand nach speichern:', data);
+  }
+};
+
+// Preset laden (Deadlines leer setzen!)
+const handleTryLoadPreset = () => {
+  if (!selectedPresetId) return;
+  console.log('[Preset] Versuche Preset zu laden:', selectedPresetId);
+  setConfirm({ action: "load-preset", payload: selectedPresetId });
+};
+const handleLoadPreset = () => {
+  if (!selectedPresetId) return;
+  const preset = presets.find(p => p.id === selectedPresetId);
+  if (preset) {
+    pushUndo();
+    const loadedMenus: MenuPerDay = {};
+    Object.entries(preset.menus).forEach(([d, arr]) => {
+      loadedMenus[Number(d)] = arr.map(m => ({
         ...m,
-        order_deadline: '' // explizit leeren!
+        order_deadline: ''
       }));
     });
-    const presetData = { name: presetName, menus: JSON.stringify(cleanMenus) };
-    const { error } = await supabase.from('week_menu_presets').insert(presetData);
-    if (!error) {
-      setPresetName('');
-      alert("Preset gespeichert!");
-      const { data } = await supabase.from('week_menu_presets').select('*');
-      setPresets((data || []).map((p: any) => ({
-        ...p,
-        menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
-      })));
-    }
-  };
+    setMenus(loadedMenus);
+    console.log('[Preset] Preset geladen:', preset);
+  }
+  setConfirm(null);
+};
 
-  // Preset laden (Deadlines leer setzen!)
-  const handleTryLoadPreset = () => {
-    if (!selectedPresetId) return;
-    setConfirm({ action: "load-preset", payload: selectedPresetId });
-  };
-  const handleLoadPreset = () => {
-    if (!selectedPresetId) return;
-    const preset = presets.find(p => p.id === selectedPresetId);
-    if (preset) {
-      pushUndo();
-      const loadedMenus: MenuPerDay = {};
-      Object.entries(preset.menus).forEach(([d, arr]) => {
-        loadedMenus[Number(d)] = arr.map(m => ({
-          ...m,
-          order_deadline: ''
-        }));
-      });
-      setMenus(loadedMenus);
-    }
-    setConfirm(null);
-  };
+// Preset umbenennen
+const handleEditPresetName = (id: number, name: string) => {
+  setEditPresetId(id);
+  setEditPresetName(name);
+  console.log('[Preset] Editiere Preset-Namen:', { id, name });
+};
+const handleSavePresetName = async () => {
+  if (!editPresetId || !editPresetName) return;
+  console.log('[Preset] Speichere neuen Namen für Preset:', { editPresetId, editPresetName });
+  await supabase.from('week_menu_presets').update({ name: editPresetName }).eq('id', editPresetId);
+  setEditPresetId(null);
+  setEditPresetName('');
+  const { data } = await supabase.from('week_menu_presets').select('*');
+  setPresets((data || []).map((p: any) => ({
+    ...p,
+    menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
+  })));
+};
 
-  // Preset umbenennen
-  const handleEditPresetName = (id: number, name: string) => {
-    setEditPresetId(id);
-    setEditPresetName(name);
-  };
-  const handleSavePresetName = async () => {
-    if (!editPresetId || !editPresetName) return;
-    await supabase.from('week_menu_presets').update({ name: editPresetName }).eq('id', editPresetId);
-    setEditPresetId(null);
-    setEditPresetName('');
-    const { data } = await supabase.from('week_menu_presets').select('*');
-    setPresets((data || []).map((p: any) => ({
-      ...p,
-      menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
-    })));
-  };
-
-  // Preset löschen (mit Bestätigung)
-  const handleTryDeletePreset = (id: number) => setConfirm({ action: "delete-preset", payload: id });
-  const handleDeletePreset = async () => {
-    if (!confirm?.payload) return;
-    await supabase.from('week_menu_presets').delete().eq('id', confirm.payload);
-    setConfirm(null);
-    const { data } = await supabase.from('week_menu_presets').select('*');
-    setPresets((data || []).map((p: any) => ({
-      ...p,
-      menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
-    })));
-  };
+// Preset löschen (mit Bestätigung)
+const handleTryDeletePreset = (id: number) => {
+  setConfirm({ action: "delete-preset", payload: id });
+  console.log('[Preset] Löschen wird vorbereitet für:', id);
+};
+const handleDeletePreset = async () => {
+  if (!confirm?.payload) return;
+  console.log('[Preset] Lösche Preset:', confirm.payload);
+  await supabase.from('week_menu_presets').delete().eq('id', confirm.payload);
+  setConfirm(null);
+  const { data } = await supabase.from('week_menu_presets').select('*');
+  setPresets((data || []).map((p: any) => ({
+    ...p,
+    menus: typeof p.menus === 'string' ? JSON.parse(p.menus) : p.menus
+  })));
+  console.log('[Preset] Neuer Stand nach löschen:', data);
+};
 
   // Export als CSV
   const exportCSV = () => {
