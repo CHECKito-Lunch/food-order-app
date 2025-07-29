@@ -35,7 +35,6 @@ type Preset = {
   menus: MenuPerDay;
 };
 
-// === Hilfsfunktion: Datum zu Wochentag (Mo–Fr) der ISO-KW berechnen ===
 function getDateOfISOWeek(isoWeek: number, isoYear: number, isoWeekday: number): Date {
   const simple = new Date(isoYear, 0, 1 + (isoWeek - 1) * 7);
   const dow = simple.getDay();
@@ -52,7 +51,6 @@ function formatDateDE(date: Date) {
     .toString().padStart(2, '0')}.${date.getFullYear()}`;
 }
 
-// === Automatische Deadline je Caterer ===
 function getDefaultDeadlineForCaterer(caterer_id: number, isoWeek: number, isoYear: number, day: number) {
   const menuDate = getDateOfISOWeek(isoWeek, isoYear, day);
   let deadlineDate;
@@ -88,11 +86,14 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
   // --- Menü-Laden ausgelagert ---
   const reloadMenus = async () => {
+    console.log('[reloadMenus] Lade week_menus:', { isoYear, isoWeek });
     const { data: loaded, error } = await supabase
       .from('week_menus')
       .select('*')
       .eq('iso_year', isoYear)
       .eq('iso_week', isoWeek);
+
+    if (error) console.error('[reloadMenus] Fehler beim Laden:', error);
 
     const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
     (loaded || []).forEach((m: any) => {
@@ -100,7 +101,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       if (grouped[day]) {
         grouped[day].push({
           ...m,
-          order_deadline: m.order_deadline ? m.order_deadline.slice(0, 16) : '' // <-- fix!
+          order_deadline: m.order_deadline ? m.order_deadline.slice(0, 16) : ''
         });
       }
     });
@@ -193,7 +194,10 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   // NIE Orders löschen, Menüs nur ohne Orders löschen!
   // =============================
   const handleSave = async () => {
+    console.log('[handleSave] START', { isoYear, isoWeek, menus });
+
     // 1. Lade alle Menüs der Woche aus der DB
+    console.log('[handleSave] Lade vorhandene week_menus:', { isoYear, isoWeek });
     const { data: dbMenus, error: loadError } = await supabase
       .from('week_menus')
       .select('id')
@@ -201,6 +205,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       .eq('iso_week', isoWeek);
 
     if (loadError) {
+      console.error('[handleSave] Fehler beim Laden der alten Menüs:', loadError);
       alert('Fehler beim Laden der alten Menüs: ' + loadError.message);
       return;
     }
@@ -216,15 +221,19 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       .map(m => m.id)
       .filter(id => !currentIds.includes(id));
 
+    console.log('[handleSave] Zu prüfende zu löschende Menü-IDs:', idsToDelete);
+
     let deletableMenuIds: number[] = [];
     if (idsToDelete.length > 0) {
       // 4. Prüfe, ob zu diesen Menüs Orders existieren
+      console.log('[handleSave] Prüfe Orders für zu löschende Menü-IDs:', idsToDelete);
       const { data: orderCheck, error: orderErr } = await supabase
         .from('orders')
         .select('week_menu_id')
         .in('week_menu_id', idsToDelete);
 
       if (orderErr) {
+        console.error('[handleSave] Fehler beim Prüfen der Orders:', orderErr);
         alert('Fehler beim Prüfen der Orders: ' + orderErr.message);
         return;
       }
@@ -234,11 +243,13 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
     // 5. Menüs ohne Orders löschen (Orders werden NIE gelöscht!)
     if (deletableMenuIds.length > 0) {
+      console.log('[handleSave] Lösche week_menus ohne Orders:', deletableMenuIds);
       const { error: delErr } = await supabase
         .from('week_menus')
         .delete()
         .in('id', deletableMenuIds);
       if (delErr) {
+        console.error('[handleSave] Fehler beim Löschen alter Menüs:', delErr);
         alert('Fehler beim Löschen alter Menüs: ' + delErr.message);
         return;
       }
@@ -246,47 +257,50 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
     // 6. Upsert/Insert Menüs wie gehabt
     const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
-  arr.map(m => {
-    const menu = {
-      day_of_week: Number(d),
-      menu_number: m.menu_number,
-      description: m.description,
-      caterer_id: m.caterer_id,
-      order_deadline: m.order_deadline,
-      iso_year: isoYear,
-      iso_week: isoWeek,
-      is_veggie: !!m.is_veggie,
-      is_vegan: !!m.is_vegan,
-      ...(typeof m.id === "number" && Number.isFinite(m.id) ? { id: m.id } : {}),
-    };
-    return menu;
-  })
-);
+      arr.map(m => {
+        const menu = {
+          day_of_week: Number(d),
+          menu_number: m.menu_number,
+          description: m.description,
+          caterer_id: m.caterer_id,
+          order_deadline: m.order_deadline,
+          iso_year: isoYear,
+          iso_week: isoWeek,
+          is_veggie: !!m.is_veggie,
+          is_vegan: !!m.is_vegan,
+          ...(typeof m.id === "number" && Number.isFinite(m.id) ? { id: m.id } : {}),
+        };
+        return menu;
+      })
+    );
     const toInsert = allMenus.filter(menu => typeof menu.id !== "number" || !Number.isFinite(menu.id));
     const toUpdate = allMenus.filter(menu => typeof menu.id === "number" && Number.isFinite(menu.id));
 
-    // 7. Upsert (Update) existierende Menüs
     if (toUpdate.length > 0) {
+      console.log('[handleSave] Upsert (Update) week_menus:', toUpdate);
       const { error: updateError } = await supabase
         .from('week_menus')
         .upsert(toUpdate, { onConflict: 'id' });
       if (updateError) {
+        console.error('[handleSave] Fehler beim Aktualisieren:', updateError);
         alert('Fehler beim Aktualisieren: ' + updateError.message);
         return;
       }
     }
-    // 8. Insert neue Menüs
     if (toInsert.length > 0) {
       const insertData = toInsert.map(({ id, ...rest }) => rest);
+      console.log('[handleSave] Insert week_menus:', insertData);
       const { error: insertError } = await supabase
         .from('week_menus')
         .insert(insertData);
       if (insertError) {
+        console.error('[handleSave] Fehler beim Einfügen:', insertError);
         alert('Fehler beim Einfügen: ' + insertError.message);
         return;
       }
     }
 
+    console.log('[handleSave] SPEICHERN FERTIG', { isoYear, isoWeek });
     alert('Woche gespeichert');
     reloadMenus();
   };
@@ -296,6 +310,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     if (!window.confirm('Willst du wirklich alle Menüs der Woche löschen? Nur Menüs ohne Bestellungen werden entfernt!')) return;
 
     // Alle Menü-IDs dieser Woche
+    console.log('[handleClearWeek] Lade week_menus für:', { isoYear, isoWeek });
     const { data: menusToDelete, error: menuLoadError } = await supabase
       .from('week_menus')
       .select('id')
@@ -303,6 +318,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       .eq('iso_week', isoWeek);
 
     if (menuLoadError) {
+      console.error('[handleClearWeek] Fehler beim Laden der Menüs:', menuLoadError);
       alert('Fehler beim Laden der Menüs: ' + menuLoadError.message);
       return;
     }
@@ -311,12 +327,14 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
     let deletableMenuIds: number[] = [];
     if (menuIds.length > 0) {
+      console.log('[handleClearWeek] Prüfe Orders für Menü-IDs:', menuIds);
       const { data: orderCheck, error: orderErr } = await supabase
         .from('orders')
         .select('week_menu_id')
         .in('week_menu_id', menuIds);
 
       if (orderErr) {
+        console.error('[handleClearWeek] Fehler beim Prüfen der Orders:', orderErr);
         alert('Fehler beim Prüfen der Orders: ' + orderErr.message);
         return;
       }
@@ -327,11 +345,13 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
     // Menüs ohne Orders löschen
     if (deletableMenuIds.length > 0) {
+      console.log('[handleClearWeek] Lösche week_menus ohne Orders:', deletableMenuIds);
       const { error: menusError } = await supabase
         .from('week_menus')
         .delete()
         .in('id', deletableMenuIds);
       if (menusError) {
+        console.error('[handleClearWeek] Fehler beim Löschen der Menüs:', menusError);
         alert('Fehler beim Löschen der Menüs: ' + menusError.message);
         return;
       }
@@ -342,6 +362,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     alert('Alle Menüs ohne Bestellungen wurden gelöscht!');
     reloadMenus();
   };
+
 
   // Preset speichern (Deadlines nicht mitspeichern!)
   const handleSavePreset = async () => {
