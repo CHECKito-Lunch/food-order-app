@@ -58,9 +58,7 @@ export default async function handler(
 
   const { data: menus, error: menuError } = await supabase
     .from('week_menus')
-    .select(
-      'id, menu_number, description, day_of_week, iso_week, iso_year'
-    )
+    .select('id, menu_number, description, day_of_week, iso_week, iso_year')
     .eq('iso_week', isoWeek)
     .eq('iso_year', isoYear)
     .eq('day_of_week', day);
@@ -70,9 +68,7 @@ export default async function handler(
     .select('first_name, last_name, location, week_menu_id');
 
   if (menuError || orderError || !menus || !orders) {
-    return res
-      .status(500)
-      .json({ error: 'Fehler beim Abrufen der Daten' });
+    return res.status(500).json({ error: 'Fehler beim Abrufen der Daten' });
   }
 
   const grouped = groupOrders(orders as Order[], menus as WeekMenu[]);
@@ -90,7 +86,7 @@ export default async function handler(
   const badgePath = path.resolve('./public/checkito-lunch-badge.png');
   const logoPath = path.resolve('./public/check24-logo.svg');
 
-  // Hilfsfunktion: eine Hälfte einer Seite zeichnen
+  // Zeichnet einen A5-Block bei x
   const drawBlock = (
     doc: PDFKit.PDFDocument,
     x: number,
@@ -99,9 +95,18 @@ export default async function handler(
     const { menu, names } = entry;
     // Hintergrund
     doc.rect(x, 0, 420, 595).fill('#ffffff');
-    // Badge oben links
-    doc.image(badgePath, x + 20, 20, { width: 80 });
-    // Titel mit realer Gerichts-Bezeichnung
+
+    // Gesamtzahl fett oben rechts
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(14)
+      .fillColor('black')
+      .text(`${names.length}×`, x + 360, 30, { width: 40, align: 'right' });
+
+    // Badge etwas tiefer
+    doc.image(badgePath, x + 20, 60, { width: 80 });
+
+    // Titel etwas tiefer beginnen
     doc
       .fillColor('black')
       .font('Helvetica-Bold')
@@ -109,16 +114,18 @@ export default async function handler(
       .text(
         `Menü ${menu.menu_number} – ${menu.description}`,
         x + 20,
-        120,
+        160,
         { width: 380, align: 'center' }
       );
+
     // Besteller-Namen
     doc.font('Helvetica').fontSize(12);
-    let y = 180;
+    let y = 220;
     for (const name of names) {
       doc.text(name, x + 20, y, { width: 380, align: 'center' });
       y += 18;
     }
+
     // CHECK24-Logo unten rechts
     SVGtoPDF(
       doc,
@@ -145,17 +152,16 @@ export default async function handler(
       doc.on('data', chunk => chunks.push(chunk));
 
       const pair = keys.slice(i, i + 2).map(k => grouped[k]);
-      // linke Hälfte
       drawBlock(doc, 0, pair[0]);
-      // rechte Hälfte, falls vorhanden
       if (pair[1]) drawBlock(doc, 420, pair[1]);
+
       doc.end();
 
       const buffer = await new Promise<Buffer>(resolve =>
         doc.on('end', () => resolve(Buffer.concat(chunks)))
       );
 
-      // Dateiname enthält Standort, Titel inhaltlich nur Gerichts‑Bezeichnung
+      // Dateiname mit realer Menünummer und Standort
       const menuNr = pair[0].menu.menu_number;
       archive.append(buffer, {
         name: `Menü ${menuNr} – ${location}.pdf`,
