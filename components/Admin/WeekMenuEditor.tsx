@@ -23,6 +23,7 @@ type Menu = {
   order_deadline: string;
   is_veggie?: boolean;
   is_vegan?: boolean;
+  is_fridge?: boolean;
 };
 
 type MenuPerDay = {
@@ -55,16 +56,13 @@ function formatDateDE(date: Date) {
 // === Automatische Deadline je Caterer ===
 function getDefaultDeadlineForCaterer(caterer_id: number, isoWeek: number, isoYear: number, day: number) {
   const menuDate = getDateOfISOWeek(isoWeek, isoYear, day);
-  let deadlineDate;
+  let deadlineDate = new Date(menuDate);
   if (caterer_id === 1) { // Dean&David
-    deadlineDate = new Date(menuDate);
     deadlineDate.setDate(menuDate.getDate() - 7);
-    deadlineDate.setHours(10, 0, 0, 0);
   } else { // Merkel/Bloi
-    deadlineDate = new Date(menuDate);
     deadlineDate.setDate(menuDate.getDate() - 1);
-    deadlineDate.setHours(10, 0, 0, 0);
   }
+  deadlineDate.setHours(10, 0, 0, 0);
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${deadlineDate.getFullYear()}-${pad(deadlineDate.getMonth() + 1)}-${pad(deadlineDate.getDate())}T${pad(deadlineDate.getHours())}:00`;
 }
@@ -94,13 +92,21 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       .eq('iso_year', isoYear)
       .eq('iso_week', isoWeek);
 
+    if (error) {
+      console.error(error);
+      return;
+    }
+
     const grouped: MenuPerDay = { 1: [], 2: [], 3: [], 4: [], 5: [] };
     (loaded || []).forEach((m: any) => {
       const day = Number(m.day_of_week);
       if (grouped[day]) {
         grouped[day].push({
           ...m,
-          order_deadline: m.order_deadline ? m.order_deadline.slice(0, 16) : ''
+          order_deadline: m.order_deadline ? m.order_deadline.slice(0, 16) : '',
+          is_veggie: m.is_veggie,
+          is_vegan: m.is_vegan,
+          is_fridge: m.is_fridge
         });
       }
     });
@@ -140,9 +146,10 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
           menu_number: prev[d].length + 1,
           description: '',
           caterer_id: CATERER_OPTIONS[0].id,
-          order_deadline: '', 
+          order_deadline: '',
           is_veggie: false,
-          is_vegan: false
+          is_vegan: false,
+          is_fridge: false
         }
       ]
     }));
@@ -163,8 +170,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
     // Caterer-Wechsel: Deadline setzen
     if (changes.caterer_id !== undefined) {
-      const newDeadline = getDefaultDeadlineForCaterer(changes.caterer_id, isoWeek, isoYear, d);
-      changes.order_deadline = newDeadline;
+      changes.order_deadline = getDefaultDeadlineForCaterer(changes.caterer_id, isoWeek, isoYear, d);
     }
 
     setMenus(prev => ({
@@ -176,13 +182,16 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   // Copy/Paste für Tages-Arrays
   const handleCopyDay = (d: number) => { setCopiedDay(d); setPasteTarget(d); };
   const handlePasteDay = () => {
-    if (!copiedDay) return;
+    if (copiedDay === null) return;
     pushUndo();
     setMenus(prev => ({
       ...prev,
       [pasteTarget]: prev[copiedDay].map(({ id, ...m }) => ({
         ...m,
-        order_deadline: '' // Deadline wird geleert!
+        order_deadline: '', // Deadline wird geleert!
+        is_fridge: m.is_fridge,
+        is_veggie: m.is_veggie,
+        is_vegan: m.is_vegan
       }))
     }));
     setCopiedDay(null);
@@ -211,7 +220,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       .map(m => m.id)
       .filter(id => typeof id === 'number' && Number.isFinite(id));
 
-    // 3. Finde alte Menü-IDs, die entfernt wurden (und potenziell gelöscht werden sollen)
+    // 3. Finde alte Menü-IDs, die entfernt wurden
     const idsToDelete = (dbMenus ?? [])
       .map(m => m.id)
       .filter(id => !currentIds.includes(id));
@@ -246,24 +255,22 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
     // 6. Upsert/Insert Menüs wie gehabt
     const allMenus = Object.entries(menus).flatMap(([d, arr]) =>
-      arr.map(m => {
-        const menu = {
-          day_of_week: Number(d),
-          menu_number: m.menu_number,
-          description: m.description,
-          caterer_id: m.caterer_id,
-          order_deadline: m.order_deadline,
-          iso_year: isoYear,
-          iso_week: isoWeek,
-          is_veggie: !!m.is_veggie,
-          is_vegan: !!m.is_vegan,
-          ...(typeof m.id === "number" && Number.isFinite(m.id) ? { id: m.id } : {}),
-        };
-        return menu;
-      })
+      arr.map(m => ({
+        day_of_week: Number(d),
+        menu_number: m.menu_number,
+        description: m.description,
+        caterer_id: m.caterer_id,
+        order_deadline: m.order_deadline,
+        iso_year: isoYear,
+        iso_week: isoWeek,
+        is_veggie: !!m.is_veggie,
+        is_vegan:  !!m.is_vegan,
+        is_fridge: !!m.is_fridge,
+        ...(typeof m.id === "number" ? { id: m.id } : {})
+      }))
     );
-    const toInsert = allMenus.filter(menu => typeof menu.id !== "number" || !Number.isFinite(menu.id));
-    const toUpdate = allMenus.filter(menu => typeof menu.id === "number" && Number.isFinite(menu.id));
+    const toInsert = allMenus.filter(menu => !(menu as any).id);
+    const toUpdate = allMenus.filter(menu => (menu as any).id);
 
     if (toUpdate.length > 0) {
       const { error: updateError } = await supabase
@@ -275,10 +282,9 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       }
     }
     if (toInsert.length > 0) {
-      const insertData = toInsert.map(({ id, ...rest }) => rest); // id NIE mitsenden!
       const { error: insertError } = await supabase
         .from('week_menus')
-        .insert(insertData);
+        .insert(toInsert);
       if (insertError) {
         alert('Fehler beim Einfügen: ' + insertError.message);
         return;
@@ -293,7 +299,6 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   const handleClearWeek = async () => {
     if (!window.confirm('Willst du wirklich alle Menüs der Woche löschen? Nur Menüs ohne Bestellungen werden entfernt!')) return;
 
-    // Alle Menü-IDs dieser Woche
     const { data: menusToDelete, error: menuLoadError } = await supabase
       .from('week_menus')
       .select('id')
@@ -306,24 +311,20 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     }
 
     const menuIds = (menusToDelete ?? []).map((m: any) => m.id);
-
     let deletableMenuIds: number[] = [];
     if (menuIds.length > 0) {
       const { data: orderCheck, error: orderErr } = await supabase
         .from('orders')
         .select('week_menu_id')
         .in('week_menu_id', menuIds);
-
       if (orderErr) {
         alert('Fehler beim Prüfen der Orders: ' + orderErr.message);
         return;
       }
-
       const menuIdsWithOrders = new Set((orderCheck ?? []).map(o => o.week_menu_id));
       deletableMenuIds = menuIds.filter(id => !menuIdsWithOrders.has(id));
     }
 
-    // Menüs ohne Orders löschen
     if (deletableMenuIds.length > 0) {
       const { error: menusError } = await supabase
         .from('week_menus')
@@ -348,7 +349,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     Object.entries(menus).forEach(([d, arr]) => {
       cleanMenus[Number(d)] = arr.map(({ id, ...m }) => ({
         ...m,
-        order_deadline: '' // explizit leeren!
+        order_deadline: ''
       }));
     });
     const presetData = { name: presetName, menus: JSON.stringify(cleanMenus) };
@@ -418,24 +419,24 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
   // Export als CSV
   const exportCSV = () => {
-    const csvRows: string[] = [
-      "Tag,Datum,Menü-Nr.,Bezeichnung,Caterer,Deadline"
-    ];
-    Object.entries(WEEKDAYS).forEach(([d, dayName]) => {
-      const tagDatum = formatDateDE(getDateOfISOWeek(isoWeek, isoYear, Number(d)));
-      (menus[Number(d)] || []).forEach(m => {
-        const caterer = CATERER_OPTIONS.find(c => c.id === m.caterer_id)?.name || '';
-        csvRows.push([
-          dayName,
-          tagDatum,
-          m.menu_number,
-          m.description.replace(/"/g, "'"),
-          caterer,
-          m.order_deadline
-        ].map(val => `"${val}"`).join(","));
-      });
+    const header = ["Tag","Datum","Nr.","Bezeichnung","Caterer","Deadline","Veggie","Vegan","Kühlschrank"];
+    const rows = Object.entries(WEEKDAYS).flatMap(([d, dayName]) => {
+      const date = formatDateDE(getDateOfISOWeek(isoWeek, isoYear, Number(d)));
+      return (menus[Number(d)]||[]).map(m => [
+        dayName,
+        date,
+        m.menu_number.toString(),
+        m.description.replace(/"/g, "'"),
+        CATERER_OPTIONS.find(c=>c.id===m.caterer_id)?.name||'',
+        m.order_deadline,
+        m.is_veggie?'ja':'nein',
+        m.is_vegan?'ja':'nein',
+        m.is_fridge?'ja':'nein'
+      ]);
     });
-    const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
+    const csv = [header, ...rows].map(r => r.join(";")).join("\n");
+    const bom = "\uFEFF";
+    const blob = new Blob([bom+csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -449,13 +450,13 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
     pushUndo();
     setMenus(prev => {
       const newMenus: MenuPerDay = { ...prev };
-      Object.keys(newMenus).forEach((d) => {
-        newMenus[Number(d)] = newMenus[Number(d)].map(m => ({
+      Object.keys(newMenus).forEach(d => {
+        newMenus[+d] = newMenus[+d].map(m => ({
           ...m,
-          order_deadline: getDefaultDeadlineForCaterer(m.caterer_id, isoWeek, isoYear, Number(d))
+          order_deadline: getDefaultDeadlineForCaterer(m.caterer_id, isoWeek, isoYear, +d)
         }));
       });
-      return { ...newMenus };
+      return newMenus;
     });
   };
 
@@ -466,16 +467,43 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
         <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg min-w-[220px] text-center border border-blue-100 dark:border-gray-700">
           {confirm.action === "delete-preset" && (
             <>
-              <p className="mb-2 text-gray-900 dark:text-gray-100 text-sm">Preset wirklich <b>löschen</b>?</p>
-              <button className="bg-red-600 text-white px-2 py-1 rounded-full font-semibold mr-2 hover:bg-red-700 text-xs shadow" onClick={handleDeletePreset}>Löschen</button>
-              <button className="bg-gray-200 dark:bg-gray-900 dark:text-gray-100 px-2 py-1 rounded-full font-semibold text-xs" onClick={() => setConfirm(null)}>Abbrechen</button>
+              <p className="mb-2 text-gray-900 dark:text-gray-100 text-sm">
+                Preset wirklich <b>löschen</b>?
+              </p>
+              <button
+                className="bg-red-600 text-white px-2 py-1 rounded-full mr-2 text-xs"
+                onClick={handleDeletePreset}
+              >
+                Löschen
+              </button>
+              <button
+                className="bg-gray-200 dark:bg-gray-900 px-2 py-1 rounded-full text-xs"
+                onClick={() => setConfirm(null)}
+              >
+                Abbrechen
+              </button>
             </>
           )}
           {confirm.action === "load-preset" && (
             <>
-              <p className="mb-2 text-gray-900 dark:text-gray-100 text-sm">Preset wirklich <b>laden</b>?<br /><span className="text-xs text-gray-500 dark:text-gray-400">(Alle aktuellen Menüs werden überschrieben!)</span></p>
-              <button className="bg-green-600 text-white px-2 py-1 rounded-full font-semibold mr-2 hover:bg-green-700 text-xs shadow" onClick={handleLoadPreset}>Preset laden</button>
-              <button className="bg-gray-200 dark:bg-gray-900 dark:text-gray-100 px-2 py-1 rounded-full font-semibold text-xs" onClick={() => setConfirm(null)}>Abbrechen</button>
+              <p className="mb-2 text-gray-900 dark:text-gray-100 text-sm">
+                Preset wirklich <b>laden</b>?<br/>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  (Alle aktuellen Menüs werden überschrieben!)
+                </span>
+              </p>
+              <button
+                className="bg-green-600 text-white px-2 py-1 rounded-full mr-2 text-xs"
+                onClick={handleLoadPreset}
+              >
+                Laden
+              </button>
+              <button
+                className="bg-gray-200 dark:bg-gray-900 px-2 py-1 rounded-full text-xs"
+                onClick={() => setConfirm(null)}
+              >
+                Abbrechen
+              </button>
             </>
           )}
         </div>
@@ -486,207 +514,225 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   // --- RENDER ---
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-bold mb-1 text-[#0056b3] dark:text-blue-200">Menü KW {isoWeek}/{isoYear}</h2>
+      <h2 className="text-lg font-bold mb-1 text-[#0056b3] dark:text-blue-200">
+        Menü KW {isoWeek}/{isoYear}
+      </h2>
 
-      {/* Reload Button */}
-      <div className="flex items-center gap-2 mb-2">
+      {/* Reload & Actions */}
+      <div className="flex flex-wrap gap-2 items-center mb-3">
         <button
           onClick={reloadMenus}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-semibold px-3 py-1.5 rounded-full text-xs shadow transition"
+          className="bg-blue-500 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full text-xs shadow"
         >
           Menüs neu laden
+        </button>
+        <button
+          onClick={exportCSV}
+          className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-full text-xs shadow"
+        >
+          📤 CSV Export
+        </button>
+        <button
+          onClick={handleReloadDeadlines}
+          className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-full text-xs shadow"
+        >
+          ⏰ Fristen setzen
         </button>
         <span className="text-xs text-gray-500 dark:text-gray-400">
           Letztes Laden: {reloadTime}
         </span>
       </div>
 
-      {/* Preset Bar */}
-      <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-3 mb-2">
-  <legend className="px-2 text-xs font-semibold text-blue-600 dark:text-blue-300">Presets</legend>
-  <div className="flex flex-wrap gap-2 items-center">
-    <input
-      value={presetName}
-      onChange={e => setPresetName(e.target.value)}
-      placeholder="Neues Preset benennen"
-      className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
-    />
-    <button
-      onClick={handleSavePreset}
-      className="bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
-      title="Preset speichern"
-    >
-      💾 Speichern
-    </button>
-    <select
-      value={selectedPresetId || ""}
-      onChange={e => setSelectedPresetId(Number(e.target.value))}
-      className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
-    >
-      <option value="">Preset wählen…</option>
-      {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-    </select>
-    <button
-      onClick={handleTryLoadPreset}
-      disabled={!selectedPresetId}
-      className="bg-green-600 hover:bg-green-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition disabled:opacity-50"
-      title="Preset laden"
-    >
-      📥 Laden
-    </button>
-    <button
-      onClick={() => selectedPresetId && handleTryDeletePreset(selectedPresetId)}
-      disabled={!selectedPresetId}
-      className="bg-red-600 hover:bg-red-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition disabled:opacity-50"
-      title="Preset löschen"
-    >
-      🗑️ Löschen
-    </button>
-    {editPresetId ? (
-      <>
-        <input
-          value={editPresetName}
-          onChange={e => setEditPresetName(e.target.value)}
-          placeholder="Neuer Name"
-          className="border border-yellow-300 dark:border-yellow-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-xs text-gray-900 dark:text-gray-100"
-        />
-        <button
-          onClick={handleSavePresetName}
-          className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
-          title="Preset-Namen speichern"
-        >
-          💾
-        </button>
-        <button
-          onClick={() => {
-            setEditPresetId(null);
-            setEditPresetName('');
-          }}
-          className="bg-gray-300 hover:bg-gray-400 text-black font-semibold px-2 py-1 rounded-full text-xs shadow transition"
-          title="Abbrechen"
-        >
-          ✖️
-        </button>
-      </>
-    ) : (
-      <button
-        onClick={() => {
-          const p = presets.find(p => p.id === selectedPresetId);
-          if (p) handleEditPresetName(p.id, p.name);
-        }}
-        disabled={!selectedPresetId}
-        className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold px-2 py-1 rounded-full text-xs shadow transition disabled:opacity-50"
-        title="Preset umbenennen"
-      >
-        ✏️ Umbenennen
-      </button>
-    )}
-    <button
-      onClick={handleUndo}
-      disabled={undoStack.length === 0}
-      className="bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-black dark:text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition disabled:opacity-50"
-      title="Undo"
-    >
-      ↩️ Undo
-    </button>
-    <button
-      onClick={exportCSV}
-      className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
-      title="CSV Export"
-    >
-      📤 Export
-    </button>
-    <button
-      onClick={handleReloadDeadlines}
-      className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
-      title="Bestellfristen neu berechnen"
-    >
-      ⏰ Fristen setzen
-    </button>
-  </div>
-</fieldset>
+      {/* Presets */}
+      <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-3 mb-3">
+        <legend className="px-2 text-xs font-semibold text-blue-600 dark:text-blue-300">
+          Presets
+        </legend>
+        <div className="flex flex-wrap gap-2 items-center">
+          <input
+            value={presetName}
+            onChange={e => setPresetName(e.target.value)}
+            placeholder="Neues Preset benennen"
+            className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+          />
+          <button
+            onClick={handleSavePreset}
+            className="bg-[#0056b3] hover:bg-blue-800 text-white px-2 py-1 rounded-full text-xs shadow"
+          >
+            💾 Speichern
+          </button>
+          <select
+            value={selectedPresetId ?? ''}
+            onChange={e => setSelectedPresetId(Number(e.target.value))}
+            className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+          >
+            <option value="">Preset wählen…</option>
+            {presets.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={handleTryLoadPreset}
+            disabled={!selectedPresetId}
+            className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded-full text-xs shadow disabled:opacity-50"
+          >
+            📥 Laden
+          </button>
+          <button
+            onClick={() => selectedPresetId && handleTryDeletePreset(selectedPresetId)}
+            disabled={!selectedPresetId}
+            className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-full text-xs shadow disabled:opacity-50"
+          >
+            🗑️ Löschen
+          </button>
+          {editPresetId ? (
+            <>
+              <input
+                value={editPresetName}
+                onChange={e => setEditPresetName(e.target.value)}
+                placeholder="Neuer Name"
+                className="border border-yellow-300 dark:border-yellow-700 rounded px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+              />
+              <button
+                onClick={handleSavePresetName}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded-full text-xs shadow"
+              >
+                💾
+              </button>
+              <button
+                onClick={() => { setEditPresetId(null); setEditPresetName(''); }}
+                className="bg-gray-300 hover:bg-gray-400 text-black px-2 py-1 rounded-full text-xs shadow"
+              >
+                ✖️
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => {
+                const p = presets.find(p => p.id === selectedPresetId);
+                if (p) handleEditPresetName(p.id, p.name);
+              }}
+              disabled={!selectedPresetId}
+              className="bg-yellow-400 hover:bg-yellow-500 text-black px-2 py-1 rounded-full text-xs shadow disabled:opacity-50"
+            >
+              ✏️ Umbenennen
+            </button>
+          )}
+          <button
+            onClick={handleUndo}
+            disabled={!undoStack.length}
+            className="bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-black dark:text-white px-2 py-1 rounded-full text-xs shadow disabled:opacity-50"
+          >
+            ↩️ Undo
+          </button>
+        </div>
+      </fieldset>
 
-      {/* Menüs Rendern pro Tag (mit Datum neben Wochentag) */}
+      {/* Menüs pro Tag */}
       <div className="space-y-4">
         {Object.entries(WEEKDAYS).map(([d, name]) => {
-          const tagDatum = formatDateDE(getDateOfISOWeek(isoWeek, isoYear, Number(d)));
+          const day = Number(d);
+          const tagDatum = formatDateDE(getDateOfISOWeek(isoWeek, isoYear, day));
           return (
             <div key={d} className="border border-blue-100 dark:border-gray-700 rounded-xl p-2 bg-white dark:bg-gray-900">
               <div className="flex items-center justify-between mb-1">
                 <div className="font-semibold text-[#0056b3] dark:text-blue-200">
                   {name} <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">{tagDatum}</span>
                 </div>
-                <button
-                  onClick={() => handleAddMenu(Number(d))}
-                  className="bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
-                >
-                  + Menü
-                </button>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handleCopyDay(day)}
+                    className="bg-gray-200 dark:bg-gray-700 text-xs px-2 py-1 rounded-full shadow"
+                  >
+                    Kopieren
+                  </button>
+                  <button
+                    onClick={handlePasteDay}
+                    disabled={copiedDay === null}
+                    className="bg-gray-200 dark:bg-gray-700 text-xs px-2 py-1 rounded-full shadow disabled:opacity-50"
+                  >
+                    Einfügen
+                  </button>
+                  <button
+                    onClick={() => handleAddMenu(day)}
+                    className="bg-[#0056b3] hover:bg-blue-800 text-white px-2 py-1 rounded-full text-xs shadow"
+                  >
+                    + Menü
+                  </button>
+                </div>
               </div>
-              
+
               <div className="space-y-2">
-                {(menus[Number(d)]?.length > 0)
-                  ? menus[Number(d)].map((m, i) => (
-                    <div key={i} className="flex flex-col md:flex-row gap-2 items-start md:items-center bg-blue-50 dark:bg-gray-900 px-2 py-2 rounded-lg">
+                {menus[day]?.length > 0 ? menus[day].map((m, i) => (
+                  <div key={i} className="flex flex-col md:flex-row gap-2 items-start md:items-center bg-blue-50 dark:bg-gray-900 px-2 py-2 rounded-lg">
+                    <input
+                      type="number"
+                      value={m.menu_number}
+                      onChange={e => handleMenuChange(day, i, { menu_number: Number(e.target.value) })}
+                      className="w-16 text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
+                    />
+                    <input
+                      type="text"
+                      value={m.description}
+                      onChange={e => handleMenuChange(day, i, { description: e.target.value })}
+                      placeholder="Bezeichnung"
+                      className="flex-1 text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
+                    />
+                    <select
+                      value={m.caterer_id}
+                      onChange={e => handleMenuChange(day, i, { caterer_id: Number(e.target.value) })}
+                      className="text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
+                    >
+                      {CATERER_OPTIONS.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="datetime-local"
+                      value={m.order_deadline}
+                      onChange={e => handleMenuChange(day, i, { order_deadline: e.target.value })}
+                      className="w-[170px] text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
+                    />
+                    <button
+                      onClick={() => handleRemoveMenu(day, i)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-full text-xs shadow"
+                    >
+                      X
+                    </button>
+
+                    <label className="flex items-center gap-1 text-xs text-green-600">
                       <input
-                        type="number"
-                        value={m.menu_number}
-                        onChange={e => handleMenuChange(Number(d), i, { menu_number: Number(e.target.value) })}
-                        className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 w-16 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
+                        type="checkbox"
+                        checked={!!m.is_veggie}
+                        onChange={e => handleMenuChange(day, i, { is_veggie: e.target.checked })}
+                        className="w-4 h-4 accent-green-500"
                       />
+                      🥦 Veggie
+                    </label>
+
+                    <label className="flex items-center gap-1 text-xs text-teal-700">
                       <input
-                        type="text"
-                        value={m.description}
-                        onChange={e => handleMenuChange(Number(d), i, { description: e.target.value })}
-                        className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 flex-1 min-w-[100px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
-                        placeholder="Bezeichnung"
+                        type="checkbox"
+                        checked={!!m.is_vegan}
+                        onChange={e => handleMenuChange(day, i, { is_vegan: e.target.checked })}
+                        className="w-4 h-4 accent-teal-500"
                       />
-                      
-                      <select
-                        value={m.caterer_id}
-                        onChange={e => handleMenuChange(Number(d), i, { caterer_id: Number(e.target.value) })}
-                        className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
-                      >
-                        {CATERER_OPTIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
+                      🌱 Vegan
+                    </label>
+
+                    <label className="flex items-center gap-1 text-xs text-red-600">
                       <input
-                        type="datetime-local"
-                        value={m.order_deadline}
-                        onChange={e => handleMenuChange(Number(d), i, { order_deadline: e.target.value })}
-                        className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 w-[170px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs"
+                        type="checkbox"
+                        checked={!!m.is_fridge}
+                        onChange={e => handleMenuChange(day, i, { is_fridge: e.target.checked })}
+                        className="w-4 h-4 accent-red-500"
                       />
-                      <button
-                        onClick={() => handleRemoveMenu(Number(d), i)}
-                        className="bg-red-600 hover:bg-red-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
-                        title="Menü löschen"
-                      >
-                        X
-                      </button>
-                        <label className="flex items-center gap-1 text-xs text-green-600">
-    <input
-      type="checkbox"
-      checked={!!m.is_veggie}
-      onChange={e => handleMenuChange(Number(d), i, { is_veggie: e.target.checked })}
-      className="w-4 h-4 accent-green-500"
-      title="Vegetarisch"
-    />
-    🥦 Veggie
-  
-  </label>
-  <label className="flex items-center gap-1 text-xs text-teal-700">
-    <input
-      type="checkbox"
-      checked={!!m.is_vegan}
-      onChange={e => handleMenuChange(Number(d), i, { is_vegan: e.target.checked })}
-      className="w-4 h-4 accent-teal-500"
-      title="Vegan"
-    />
-    🌱 Vegan
-  </label>
-                    </div>
-                  ))
-                  : <div className="text-xs text-gray-400">Kein Menü für diesen Tag.</div>
-                }
+                      🧊 Kühlschrank
+                    </label>
+                  </div>
+                )) : (
+                  <div className="text-xs text-gray-400">Kein Menü für diesen Tag.</div>
+                )}
               </div>
             </div>
           );
@@ -696,13 +742,13 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       <div className="flex justify-end mt-3 gap-2">
         <button
           onClick={handleClearWeek}
-          className="bg-red-700 hover:bg-red-800 text-white font-semibold px-4 py-2 rounded-xl text-sm shadow transition"
+          className="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-xl text-sm shadow"
         >
           Woche leeren
         </button>
         <button
           onClick={handleSave}
-          className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-xl text-sm shadow transition"
+          className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-xl text-sm shadow"
         >
           Woche speichern
         </button>
