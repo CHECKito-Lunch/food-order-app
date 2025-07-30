@@ -263,7 +263,7 @@ export default function Dashboard() {
 
     // Kurze Zusammenfassung bauen (Tag, Menü, Woche)
     const wochentag = WEEKDAYS[menu.day_of_week - 1] || '';
-    setSnackbarSummary(`Du hast am ${wochentag} das Menü "${menu.description}" für KW ${selectedWeek} bestellt.`);
+    setSnackbarSummary(`Du hast am ${wochentag} das Menü "${menu.description}" für KW ${selectedWeek} bestellt (nur für Danny 🤌🏻).`);
     setShowSnackbar(true);
     setSavingOrder(false);
     setTimeout(() => setShowSnackbar(false), 2500);
