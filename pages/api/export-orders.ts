@@ -1,3 +1,4 @@
+// pages/api/export-orders.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import PDFDocument from 'pdfkit';
@@ -5,6 +6,12 @@ import SVGtoPDF from 'svg-to-pdfkit';
 import archiver from 'archiver';
 import fs from 'fs';
 import path from 'path';
+
+export const config = {
+  api: {
+    bodyParser: false, // Wichtig: ausschalten für Streaming
+  },
+};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -28,7 +35,7 @@ interface Order {
   week_menu_id: number;
 }
 
-// Gruppiert pro Menü und Standort
+// Gruppiert Bestellungen je Menü & Standort
 function groupOrders(orders: Order[], menus: WeekMenu[]) {
   const grouped: Record<string, { menu: WeekMenu; names: string[] }> = {};
   for (const menu of menus) {
@@ -50,6 +57,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Parameter validieren
   const isoWeek = parseInt(req.query.isoWeek as string, 10);
   const isoYear = parseInt(req.query.isoYear as string, 10);
   const day     = parseInt(req.query.day as string, 10);
@@ -78,6 +86,7 @@ export default async function handler(
   const locations: ('Nordpol' | 'Südpol')[] = ['Nordpol', 'Südpol'];
 
   // ZIP-Header
+  res.status(200);
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader(
     'Content-Disposition',
@@ -94,37 +103,27 @@ export default async function handler(
   const badgePath = path.resolve('./public/checkito-lunch-badge.png');
   const logoPath  = path.resolve('./public/check24-logo.svg');
 
-  // Eine Hälfte der A4-Seite zeichnen
+  // Zeichnet einen A5-Block bei X-Koordinate
   const drawBlock = (
     doc: PDFDocument,
     x: number,
     entry: { menu: WeekMenu; names: string[] }
   ) => {
     const { menu, names } = entry;
-    // Weißer Hintergrund
-    doc.rect(x, 0, 420, 595).fill('#ffffff');
+    doc.rect(x, 0, 420, 595).fill('#ffffff'); // Hintergrund
 
-    // Bestellanzahl oben rechts
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(14)
-      .fillColor('black')
+    // Menge
+    doc.font('Helvetica-Bold').fontSize(14).fillColor('black')
       .text(`${names.length}×`, x + 360, 30, { width: 40, align: 'right' });
 
     // Badge
     doc.image(badgePath, x + 20, 20, { width: 80 });
 
     // Titel
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(16)
-      .fillColor('black')
-      .text(
-        `Menü ${menu.menu_number} – ${menu.description}`,
-        x + 20,
-        160,
-        { width: 380, align: 'center' }
-      );
+    doc.font('Helvetica-Bold').fontSize(16).fillColor('black')
+      .text(`Menü ${menu.menu_number} – ${menu.description}`, x + 20, 160, {
+        width: 380, align: 'center'
+      });
 
     // Namen
     doc.font('Helvetica').fontSize(12);
@@ -136,46 +135,29 @@ export default async function handler(
 
     // Kühlschrank-Hinweis
     if (menu.in_fridge) {
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(12)
-        .fillColor('red')
-        .text(
-          'befindet sich im Kühlschrank',
-          x + 20,
-          560,
-          { width: 380, align: 'center' }
-        );
+      doc.font('Helvetica-Bold').fontSize(12).fillColor('red')
+        .text('befindet sich im Kühlschrank', x + 20, 560, {
+          width: 380, align: 'center'
+        });
     }
-
-    // Logo unten rechts
-    SVGtoPDF(
-      doc,
-      fs.readFileSync(logoPath, 'utf-8'),
-      x + 330,
-      500,
-      { width: 80 }
-    );
+    // Logo
+    SVGtoPDF(doc, fs.readFileSync(logoPath, 'utf-8'), x + 330, 500, { width: 80 });
   };
 
-  // Pro Standort je 2 A5-Blöcke auf A4 quer
+  // Für jeden Standort jeweils 2 A5-Blöcke pro A4-Landscape
   for (const location of locations) {
     const keys = Object.keys(grouped)
-      .filter(k => k.startsWith(location));
+      .filter(k => k.startsWith(location) && grouped[k].names.length > 0);
 
     for (let i = 0; i < keys.length; i += 2) {
-      const doc = new PDFDocument({
-        size: 'A4',
-        layout: 'landscape',
-        margin: 0,
-      });
+      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 });
       doc.on('error', (err: Error) => {
         console.error('PDF error:', err);
         archive.abort();
       });
 
       const chunks: Uint8Array[] = [];
-      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
 
       const pair = keys.slice(i, i + 2).map(k => grouped[k]);
       drawBlock(doc,   0, pair[0]);
@@ -183,6 +165,7 @@ export default async function handler(
 
       doc.end();
 
+      // Auf das „end“-Event warten, um den Buffer zu haben
       const buffer = await new Promise<Buffer>(resolve =>
         doc.on('end', () => resolve(Buffer.concat(chunks)))
       );
@@ -192,5 +175,6 @@ export default async function handler(
     }
   }
 
+  // ZIP finalisieren und Response schließen
   await archive.finalize();
 }
