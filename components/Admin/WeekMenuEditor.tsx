@@ -601,7 +601,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
       title="Bestellfristen neu berechnen"
     >
-      ⏰ Fristen
+      ⏰ Fristen setzen
     </button>
   </div>
 </fieldset>
