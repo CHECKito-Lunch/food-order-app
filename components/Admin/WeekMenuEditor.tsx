@@ -634,10 +634,16 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
           const day = Number(d);
           const tagDatum = formatDateDE(getDateOfISOWeek(isoWeek, isoYear, day));
           return (
-            <div key={d} className="border border-blue-100 dark:border-gray-700 rounded-xl p-2 bg-white dark:bg-gray-900">
+            <div
+              key={d}
+              className="border border-blue-100 dark:border-gray-700 rounded-xl p-2 bg-white dark:bg-gray-900"
+            >
               <div className="flex items-center justify-between mb-1">
                 <div className="font-semibold text-[#0056b3] dark:text-blue-200">
-                  {name} <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">{tagDatum}</span>
+                  {name}{' '}
+                  <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
+                    {tagDatum}
+                  </span>
                 </div>
                 <div className="flex gap-1">
                   <button
@@ -663,74 +669,99 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
               </div>
 
               <div className="space-y-2">
-                {menus[day]?.length > 0 ? menus[day].map((m, i) => (
-                  <div key={i} className="flex flex-col md:flex-row gap-2 items-start md:items-center bg-blue-50 dark:bg-gray-900 px-2 py-2 rounded-lg">
-                    <input
-                      type="number"
-                      value={m.menu_number}
-                      onChange={e => handleMenuChange(day, i, { menu_number: Number(e.target.value) })}
-                      className="w-16 text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
-                    />
-                    <input
-                      type="text"
-                      value={m.description}
-                      onChange={e => handleMenuChange(day, i, { description: e.target.value })}
-                      placeholder="Bezeichnung"
-                      className="flex-1 text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
-                    />
-                    <select
-                      value={m.caterer_id}
-                      onChange={e => handleMenuChange(day, i, { caterer_id: Number(e.target.value) })}
-                      className="text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
+                {menus[day]?.length ? (
+                  menus[day].map((m, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col md:flex-row gap-2 items-center bg-white dark:bg-gray-900 px-2 py-2 rounded-lg"
                     >
-                      {CATERER_OPTIONS.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="datetime-local"
-                      value={m.order_deadline}
-                      onChange={e => handleMenuChange(day, i, { order_deadline: e.target.value })}
-                      className="w-[170px] text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
-                    />
-                    <button
-                      onClick={() => handleRemoveMenu(day, i)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-full text-xs shadow"
-                    >
-                      X
-                    </button>
-
-                    <label className="flex items-center gap-1 text-xs text-green-600">
                       <input
-                        type="checkbox"
-                        checked={!!m.is_veggie}
-                        onChange={e => handleMenuChange(day, i, { is_veggie: e.target.checked })}
-                        className="w-4 h-4 accent-green-500"
+                        type="number"
+                        value={m.menu_number}
+                        onChange={e =>
+                          handleMenuChange(day, i, {
+                            menu_number: Number(e.target.value),
+                          })
+                        }
+                        className="w-16 text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
                       />
-                      🥦 Veggie
-                    </label>
-
-                    <label className="flex items-center gap-1 text-xs text-teal-700">
                       <input
-                        type="checkbox"
-                        checked={!!m.is_vegan}
-                        onChange={e => handleMenuChange(day, i, { is_vegan: e.target.checked })}
-                        className="w-4 h-4 accent-teal-500"
+                        type="text"
+                        value={m.description}
+                        onChange={e =>
+                          handleMenuChange(day, i, { description: e.target.value })
+                        }
+                        placeholder="Bezeichnung"
+                        className="flex-1 text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
                       />
-                      🌱 Vegan
-                    </label>
-
-                    <label className="flex items-center gap-1 text-xs text-red-600">
+                      <select
+                        value={m.caterer_id}
+                        onChange={e =>
+                          handleMenuChange(day, i, {
+                            caterer_id: Number(e.target.value),
+                          })
+                        }
+                        className="text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
+                      >
+                        {CATERER_OPTIONS.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
                       <input
-                        type="checkbox"
-                        checked={!!m.is_fridge}
-                        onChange={e => handleMenuChange(day, i, { is_fridge: e.target.checked })}
-                        className="w-4 h-4 accent-red-500"
+                        type="datetime-local"
+                        value={m.order_deadline}
+                        onChange={e =>
+                          handleMenuChange(day, i, { order_deadline: e.target.value })
+                        }
+                        className="w-[170px] text-xs px-2 py-1 border border-blue-200 dark:border-gray-700 rounded"
                       />
-                      🧊 Kühlschrank
-                    </label>
-                  </div>
-                )) : (
+                      <button
+                        onClick={() => handleRemoveMenu(day, i)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-full text-xs shadow"
+                      >
+                        ✖
+                      </button>
+
+                      <label className="flex items-center gap-1 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={!!m.is_veggie}
+                          onChange={e =>
+                            handleMenuChange(day, i, { is_veggie: e.target.checked })
+                          }
+                          className="w-4 h-4 accent-green-500"
+                        />
+                        🥦
+                      </label>
+
+                      <label className="flex items-center gap-1 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={!!m.is_vegan}
+                          onChange={e =>
+                            handleMenuChange(day, i, { is_vegan: e.target.checked })
+                          }
+                          className="w-4 h-4 accent-teal-500"
+                        />
+                        🌱
+                      </label>
+
+                      <label className="flex items-center gap-1 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={!!m.is_fridge}
+                          onChange={e =>
+                            handleMenuChange(day, i, { is_fridge: e.target.checked })
+                          }
+                          className="w-4 h-4 accent-red-500"
+                        />
+                        🧊
+                      </label>
+                    </div>
+                  ))
+                ) : (
                   <div className="text-xs text-gray-400">Kein Menü für diesen Tag.</div>
                 )}
               </div>
