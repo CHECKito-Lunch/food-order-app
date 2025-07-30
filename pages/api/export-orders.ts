@@ -11,7 +11,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
-interface WeekMenuGrouped {
+interface WeekMenu {
   id: number;
   menu_number: number;
   description: string;
@@ -27,10 +27,34 @@ interface Order {
   week_menu_id: number;
 }
 
+// Gruppieren der Menüs mit Bestellern
+function groupOrders(orders: Order[], menus: WeekMenu[]) {
+  const grouped: Record<string, { menu: WeekMenu; names: string[] }> = {};
+
+  for (const menu of menus) {
+    for (const location of ['Nordpol', 'Südpol']) {
+      const key = `${location}_${menu.id}`;
+      grouped[key] = { menu, names: [] };
+    }
+  }
+
+  for (const order of orders) {
+    const menu = menus.find(m => m.id === order.week_menu_id);
+    if (!menu) continue;
+    const key = `${order.location}_${menu.id}`;
+    if (grouped[key]) {
+      grouped[key].names.push(`${order.first_name} ${order.last_name}`);
+    }
+  }
+
+  return grouped;
+}
+
+// API-Handler
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const isoWeek = parseInt(req.query.isoWeek as string, 10);
   const isoYear = parseInt(req.query.isoYear as string, 10);
-  const day = parseInt(req.query.day as string, 10); // 1=Montag …
+  const day = parseInt(req.query.day as string, 10);
 
   if (isNaN(isoWeek) || isNaN(isoYear) || isNaN(day)) {
     return res.status(400).json({ error: 'Ungültige Parameter' });
@@ -47,96 +71,102 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Fehler beim Abrufen der Menüs' });
   }
 
-  const menuIds = menus.map(m => m.id);
-
   const { data: orders, error: orderError } = await supabase
     .from('orders')
-    .select('first_name, last_name, location, week_menu_id')
-    .in('week_menu_id', menuIds);
+    .select('first_name, last_name, location, week_menu_id');
 
   if (orderError || !orders) {
     return res.status(500).json({ error: 'Fehler beim Abrufen der Bestellungen' });
   }
 
-  // Gruppieren
-  const grouped: Record<string, { title: string; names: string[] }> = {};
-  for (const menu of menus) {
-    for (const location of ['Nordpol', 'Südpol']) {
-      const key = `${menu.id}_${location}`;
-      grouped[key] = {
-        title: `Menü ${menu.menu_number} – ${location}`,
-        names: []
-      };
-    }
-  }
+  const grouped = groupOrders(orders, menus as WeekMenu[]);
 
-  for (const order of orders) {
-    const menu = menus.find(m => m.id === order.week_menu_id);
-    if (!menu) continue;
-    const key = `${menu.id}_${order.location}`;
-    grouped[key]?.names.push(`${order.first_name} ${order.last_name}`);
-  }
+  // Sortiere nach Standort
+  const locations: ('Nordpol' | 'Südpol')[] = ['Nordpol', 'Südpol'];
 
-  // PDF ZIP Export
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader(
     'Content-Disposition',
-    `attachment; filename=Menue_KW${isoWeek}_${isoYear}_Tag${day}.zip`
+    `attachment; filename=Menue_Export_KW${isoWeek}_${isoYear}_Tag${day}.zip`
   );
 
   const archive = archiver('zip', { zlib: { level: 9 } });
   archive.pipe(res);
 
-  let nordpolCount = 1;
-  let suedpolCount = 1;
+  const badgePath = path.resolve('./public/checkito-lunch-badge.png');
+  const logoPath = path.resolve('./public/check24-logo.svg');
 
-  for (const [key, { title, names }] of Object.entries(grouped)) {
-    if (names.length === 0) continue;
+  for (const location of locations) {
+    const locationMenus = Object.entries(grouped)
+      .filter(([key]) => key.startsWith(location))
+      .filter(([, value]) => value.names.length > 0);
 
-    const isNordpol = title.includes('Nordpol');
-    const menuNr = isNordpol ? nordpolCount++ : suedpolCount++;
-    const filename = `Menü ${menuNr} – ${isNordpol ? 'Nordpol' : 'Südpol'}.pdf`;
+    if (locationMenus.length === 0) continue;
 
     const doc = new PDFDocument({
       size: 'A4',
       layout: 'landscape',
-      margins: { top: 40, bottom: 40, left: 40, right: 40 }
+      margin: 0
     });
 
     const chunks: Uint8Array[] = [];
     doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
 
-    // Logos
-    const topLogo = path.resolve('./public/checkito-lunch-badge.png');
-    const bottomLogo = path.resolve('./public/check24-logo.svg');
+    let menuCount = 1;
 
-    // Logo oben links
-    doc.image(topLogo, 40, 30, { width: 100 });
+    for (let i = 0; i < locationMenus.length; i += 2) {
+      const pair = locationMenus.slice(i, i + 2);
 
-    // Titel zentriert
-    doc.fontSize(24).font('Helvetica-Bold').text(title, 0, 100, { align: 'center' });
+      for (let j = 0; j < pair.length; j++) {
+        const { menu, names } = pair[j][1];
 
-    // Abstand vor Namen
-    doc.moveDown(3);
+        const offsetX = j === 0 ? 0 : 420; // 0 für links, 420 für rechts
+        const centerX = offsetX + 210;
 
-    // Namen
-    doc.fontSize(14).font('Helvetica');
-    names.forEach(name => {
-      doc.text(name, { align: 'center' });
-    });
+        // Hintergrund
+        doc.rect(offsetX, 0, 420, 595).fill('#ffffff');
 
-    // Footer-Logo
-    SVGtoPDF(doc, fs.readFileSync(bottomLogo, 'utf8'), doc.page.width - 140, doc.page.height - 70, { width: 100 });
+        // Badge
+        doc.image(badgePath, offsetX + 20, 20, { width: 80 });
+
+        // Titel
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('black').text(
+          `Menü ${menuCount} – ${location}`,
+          centerX,
+          120,
+          { align: 'center' }
+        );
+
+        // Separator
+        doc.fontSize(18).text('✶✶✶', centerX, 150, { align: 'center' });
+
+        // Namen
+        doc.fontSize(12).font('Helvetica').fillColor('black');
+        let startY = 190;
+        names.forEach((name) => {
+          doc.text(name, offsetX + 40, startY, { width: 340, align: 'center' });
+          startY += 18;
+        });
+
+        // CHECK24 Logo unten rechts
+        SVGtoPDF(doc, fs.readFileSync(logoPath, 'utf-8'), offsetX + 300, 500, { width: 100 });
+
+        menuCount++;
+      }
+
+      // Neue Seite, wenn noch mehr folgen
+      if (i + 2 < locationMenus.length) {
+        doc.addPage();
+      }
+    }
 
     doc.end();
 
-    await new Promise<void>((resolve) => {
-      doc.on('end', () => {
-        const buffer = Buffer.concat(chunks);
-        archive.append(buffer, { name: filename });
-        resolve();
-      });
+    const buffer = await new Promise<Buffer>((resolve) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
     });
+
+    archive.append(buffer, { name: `${location}.pdf` });
   }
 
   archive.finalize();
