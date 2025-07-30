@@ -157,6 +157,34 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         </button>
       </div>
 
+      {/* ─── Übersicht Bestellmengen ───────────────────────────────────────────────── */}
+      {!loading && (
+        <div className="mb-4 px-4 py-3 bg-blue-50 dark:bg-gray-900 rounded-xl shadow-sm border border-blue-100 dark:border-gray-700">
+          <h3 className="font-semibold text-sm text-[#0056b3] dark:text-blue-200 mb-1">
+            Übersicht Bestellmengen für {WEEKDAYS[selectedDay]}:
+          </h3>
+          <ul className="text-xs text-gray-800 dark:text-gray-200 list-disc pl-5">
+            {Object.entries(
+              orders
+                .filter(o => Number(o.day_of_week) === selectedDay)
+                .reduce<Record<string, { count: number; description: string }>>((acc, order) => {
+                  const key = String(order.menu_number);
+                  if (!acc[key]) {
+                    acc[key] = { count: 1, description: order.description };
+                  } else {
+                    acc[key].count += 1;
+                  }
+                  return acc;
+                }, {})
+            ).map(([menuNr, { count, description }]) => (
+              <li key={menuNr}>
+                Menü {menuNr} – {description}: {count}× bestellt
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-10 text-base dark:text-gray-100 dark:bg-gray-900">Lädt...</div>
       ) : (

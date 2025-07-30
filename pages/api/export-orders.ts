@@ -31,7 +31,7 @@ function groupOrders(orders: Order[], menus: WeekMenu[]) {
   const grouped: Record<string, { menu: WeekMenu; names: string[] }> = {};
 
   for (const menu of menus) {
-    for (const location of ['Nordpol', 'Südpol']) {
+    for (const location of ['Nordpol', 'Südpol'] as const) {
       const key = `${location}_${menu.id}`;
       grouped[key] = { menu, names: [] };
     }
@@ -41,9 +41,7 @@ function groupOrders(orders: Order[], menus: WeekMenu[]) {
     const menu = menus.find(m => m.id === order.week_menu_id);
     if (!menu) continue;
     const key = `${order.location}_${menu.id}`;
-    if (grouped[key]) {
-      grouped[key].names.push(`${order.first_name} ${order.last_name}`);
-    }
+    grouped[key].names.push(`${order.first_name} ${order.last_name}`);
   }
 
   return grouped;
@@ -73,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Fehler beim Abrufen der Daten' });
   }
 
-  const grouped = groupOrders(orders, menus as WeekMenu[]);
+  const grouped = groupOrders(orders as Order[], menus as WeekMenu[]);
   const locations: ('Nordpol' | 'Südpol')[] = ['Nordpol', 'Südpol'];
 
   res.setHeader('Content-Type', 'application/zip');
@@ -89,37 +87,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const logoPath = path.resolve('./public/check24-logo.svg');
 
   for (const location of locations) {
-    const locationMenus = Object.entries(grouped)
-      .filter(([key]) => key.startsWith(location))
-      .filter(([, value]) => value.names.length > 0);
+    const locationMenus = Object.values(grouped)
+      .filter(entry => entry.menu.day_of_week === day)
+      .filter(entry => entry.names.length > 0 && entry.menu)
+      .filter(entry => Object.keys(grouped).some(k => k.startsWith(location) && grouped[k] === entry));
 
     if (locationMenus.length === 0) continue;
-
-    let menuNr = 1;
 
     for (let i = 0; i < locationMenus.length; i += 2) {
       const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 });
       const chunks: Uint8Array[] = [];
       doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
 
-      const drawBlock = (
-        x: number,
-        menu: WeekMenu,
-        names: string[],
-        nr: number
-      ) => {
+      const pair = locationMenus.slice(i, i + 2);
+
+      const drawBlock = (x: number, entry: { menu: WeekMenu; names: string[] }) => {
+        const { menu, names } = entry;
+        // Weißen Hintergrund zeichnen
         doc.rect(x, 0, 420, 595).fill('#ffffff');
 
+        // Badge oben links
         doc.image(badgePath, x + 20, 20, { width: 80 });
 
+        // Titel mit realer Menünummer
         doc.fillColor('black').font('Helvetica-Bold').fontSize(16)
-          .text(`Menü ${nr} – ${location}`, x + 60, 120, {
+          .text(`Menü ${menu.menu_number} – ${location}`, x + 60, 120, {
             width: 300,
             align: 'center'
           });
 
-      
-
+        // Abstand vor Namen
         doc.font('Helvetica').fontSize(12);
         let y = 190;
         for (const name of names) {
@@ -127,26 +124,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           y += 18;
         }
 
-        SVGtoPDF(doc, fs.readFileSync(logoPath, 'utf-8'), x + 310, 520, { width: 90 });
+        // CHECK24-Logo unten rechts
+        SVGtoPDF(doc, fs.readFileSync(logoPath, 'utf-8'), x + 310, 500, { width: 90 });
       };
 
-      const first = locationMenus[i];
-      const second = locationMenus[i + 1];
+      // Linke Hälfte
+      drawBlock(0, pair[0]);
 
-      drawBlock(0, first[1].menu, first[1].names, menuNr++);
-
-      if (second) {
-        drawBlock(420, second[1].menu, second[1].names, menuNr++);
+      // Rechte Hälfte, falls vorhanden
+      if (pair[1]) {
+        drawBlock(420, pair[1]);
       }
 
       doc.end();
 
-      const buffer = await new Promise<Buffer>((resolve) => {
+      const buffer = await new Promise<Buffer>(resolve => {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
       });
 
-      const filename = `Menü ${menuNr - (second ? 2 : 1)} – ${location}.pdf`;
-      archive.append(buffer, { name: filename });
+      // Dateiname mit realer Menünummer
+      const leftMenuNr = pair[0].menu.menu_number;
+      archive.append(buffer, { name: `Menü ${leftMenuNr} – ${location}.pdf` });
     }
   }
 
