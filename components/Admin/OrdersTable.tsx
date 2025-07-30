@@ -132,6 +132,22 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         >
           Exportieren (CSV)
         </button>
+        <button
+  onClick={async () => {
+    const res = await fetch(`/api/export-orders?week=${isoWeek}&year=${isoYear}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Export_KW${isoWeek}_${isoYear}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }}
+  className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs"
+>
+  PDF Export (Querformat)
+</button>
+
       </div>
       {loading ? (
         <div className="text-center py-10 text-base dark:text-gray-100 dark:bg-gray-900">Lädt...</div>
