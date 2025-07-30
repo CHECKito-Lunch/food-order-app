@@ -118,10 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             align: 'center'
           });
 
-        doc.fontSize(18).text('✶✶✶', x + 60, 150, {
-          width: 300,
-          align: 'center'
-        });
+      
 
         doc.font('Helvetica').fontSize(12);
         let y = 190;
