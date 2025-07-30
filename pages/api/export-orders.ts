@@ -104,7 +104,7 @@ export default async function handler(
       .text(`${names.length}×`, x + 360, 30, { width: 40, align: 'right' });
 
     // Badge etwas tiefer
-    doc.image(badgePath, x + 20, 60, { width: 80 });
+    doc.image(badgePath, x + 20, 20, { width: 80 });
 
     // Titel etwas tiefer beginnen
     doc
