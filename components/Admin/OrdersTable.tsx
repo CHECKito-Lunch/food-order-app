@@ -112,7 +112,8 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
 
   return (
     <div className="w-full">
-      <div className="flex flex-wrap gap-2 items-center mb-3">
+      {/* Buttons on a single line */}
+      <div className="flex items-center space-x-2 mb-3">
         <h2 className="text-lg font-bold text-[#0056b3] dark:text-blue-200">
           Bestellungen Übersicht <span className="font-normal text-gray-500 dark:text-gray-400">(KW {isoWeek}/{isoYear})</span>
         </h2>
@@ -163,7 +164,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
           <h3 className="font-semibold text-sm text-[#0056b3] dark:text-blue-200 mb-1">
             Übersicht Bestellmengen für {WEEKDAYS[selectedDay]}:
           </h3>
-          <ul className="text-xs text-gray-800 dark:text-gray-200 list-disc pl-5">
+          <ul className="text-xs text-gray-800 dark:text-gray-200 list-disc pl-5 space-y-1">
             {Object.entries(
               orders
                 .filter(o => Number(o.day_of_week) === selectedDay)
@@ -178,7 +179,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
                 }, {})
             ).map(([menuNr, { count, description }]) => (
               <li key={menuNr}>
-                Menü {menuNr} – {description}: {count}× bestellt
+                <strong>{count}× bestellt</strong> Men&uuml; {menuNr} – {description}
               </li>
             ))}
           </ul>
