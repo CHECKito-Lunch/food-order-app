@@ -18,7 +18,7 @@ interface OrderAdmin {
   id: number;
   first_name: string;
   last_name: string;
-  location: string; 
+  location: string;
   iso_week: number | string;
   day_of_week: number | string;
   menu_number: number | string;
@@ -29,6 +29,7 @@ interface OrderAdmin {
 export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, isoWeek: number }) {
   const [orders, setOrders] = useState<OrderAdmin[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDay, setSelectedDay] = useState(1);
 
   useEffect(() => {
     async function fetchOrders() {
@@ -39,7 +40,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
           id,
           first_name,
           last_name,
-          location,                
+          location,
           week_menu_id,
           week_menus (
             menu_number,
@@ -68,7 +69,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
             id: row.id,
             first_name: row.first_name ?? "",
             last_name: row.last_name ?? "",
-            location: row.location ?? "", 
+            location: row.location ?? "",
             iso_week: wm.iso_week ?? "",
             day_of_week: wm.day_of_week ?? "",
             menu_number: wm.menu_number ?? "",
@@ -84,22 +85,12 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
     fetchOrders();
   }, [isoYear, isoWeek]);
 
-  // --- HIER UTF-8 BOM FIX ---
   function exportCSV() {
-    const header = [
-      "Vorname",
-      "Nachname",
-      "Standort", // NEU
-      "KW",
-      "Tag",
-      "Nr.",
-      "Gericht",
-      "Caterer"
-    ];
+    const header = ["Vorname", "Nachname", "Standort", "KW", "Tag", "Nr.", "Gericht", "Caterer"];
     const rows = orders.map(o => [
       o.first_name,
       o.last_name,
-      o.location, // NEU
+      o.location,
       o.iso_week,
       typeof o.day_of_week === "number"
         ? WEEKDAYS[o.day_of_week]
@@ -109,7 +100,6 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
       o.caterer_id ? CATERER_OPTIONS[o.caterer_id] ?? o.caterer_id : ""
     ]);
     const csv = [header, ...rows].map(r => r.join(";")).join("\n");
-    // BOM für Excel-Export (damit Umlaute wie ö, ü, ä funktionieren)
     const bom = "\uFEFF";
     const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -122,33 +112,51 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
 
   return (
     <div className="w-full">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 gap-2">
+      <div className="flex flex-wrap gap-2 items-center mb-3">
         <h2 className="text-lg font-bold text-[#0056b3] dark:text-blue-200">
           Bestellungen Übersicht <span className="font-normal text-gray-500 dark:text-gray-400">(KW {isoWeek}/{isoYear})</span>
         </h2>
+
         <button
           onClick={exportCSV}
-          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition w-full md:w-auto text-xs"
+          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs"
         >
           Exportieren (CSV)
         </button>
-        <button
-  onClick={async () => {
-    const res = await fetch(`/api/export-orders?week=${isoWeek}&year=${isoYear}`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Export_KW${isoWeek}_${isoYear}.zip`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }}
-  className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs"
->
-  PDF Export (Querformat)
-</button>
 
+        <div className="flex items-center gap-2">
+          <label htmlFor="daySelect" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Wochentag:
+          </label>
+          <select
+            id="daySelect"
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(Number(e.target.value))}
+            className="text-sm px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow"
+          >
+            {Object.entries(WEEKDAYS).map(([val, label]) => (
+              <option key={val} value={val}>{label}</option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          onClick={async () => {
+            const res = await fetch(`/api/export-orders?isoWeek=${isoWeek}&isoYear=${isoYear}&day=${selectedDay}`);
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `PDF_Export_KW${isoWeek}_${isoYear}_Tag${selectedDay}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs"
+        >
+          PDF Export (Querformat)
+        </button>
       </div>
+
       {loading ? (
         <div className="text-center py-10 text-base dark:text-gray-100 dark:bg-gray-900">Lädt...</div>
       ) : (
@@ -156,14 +164,9 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
           <table className="min-w-full divide-y divide-blue-100 dark:divide-gray-700 text-xs">
             <thead>
               <tr className="bg-blue-50 dark:bg-gray-900">
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Vorname</th>
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Nachname</th>
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Standort</th> 
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">KW</th>
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Tag</th>
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Nr.</th>
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Gericht</th>
-                <th className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">Caterer</th>
+                {["Vorname", "Nachname", "Standort", "KW", "Tag", "Nr.", "Gericht", "Caterer"].map((col) => (
+                  <th key={col} className="p-2 font-semibold text-[#0056b3] dark:text-blue-200">{col}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -171,7 +174,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
                 <tr key={o.id} className="hover:bg-blue-50 dark:hover:bg-gray-700">
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.first_name}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.last_name}</td>
-                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.location}</td> 
+                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.location}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.iso_week}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">
                     {typeof o.day_of_week === "number"
