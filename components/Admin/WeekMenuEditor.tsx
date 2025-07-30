@@ -502,54 +502,109 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       </div>
 
       {/* Preset Bar */}
-      <div className="flex flex-wrap gap-1 mb-2">
+      <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-3 mb-2">
+  <legend className="px-2 text-xs font-semibold text-blue-600 dark:text-blue-300">Presets</legend>
+  <div className="flex flex-wrap gap-2 items-center">
+    <input
+      value={presetName}
+      onChange={e => setPresetName(e.target.value)}
+      placeholder="Neues Preset benennen"
+      className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
+    />
+    <button
+      onClick={handleSavePreset}
+      className="bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
+      title="Preset speichern"
+    >
+      💾 Speichern
+    </button>
+    <select
+      value={selectedPresetId || ""}
+      onChange={e => setSelectedPresetId(Number(e.target.value))}
+      className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
+    >
+      <option value="">Preset wählen…</option>
+      {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+    </select>
+    <button
+      onClick={handleTryLoadPreset}
+      disabled={!selectedPresetId}
+      className="bg-green-600 hover:bg-green-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition disabled:opacity-50"
+      title="Preset laden"
+    >
+      📥 Laden
+    </button>
+    <button
+      onClick={() => selectedPresetId && handleTryDeletePreset(selectedPresetId)}
+      disabled={!selectedPresetId}
+      className="bg-red-600 hover:bg-red-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition disabled:opacity-50"
+      title="Preset löschen"
+    >
+      🗑️ Löschen
+    </button>
+    {editPresetId ? (
+      <>
         <input
-          value={presetName}
-          onChange={e => setPresetName(e.target.value)}
-          placeholder="Preset-Name"
-          className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
+          value={editPresetName}
+          onChange={e => setEditPresetName(e.target.value)}
+          placeholder="Neuer Name"
+          className="border border-yellow-300 dark:border-yellow-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-xs text-gray-900 dark:text-gray-100"
         />
         <button
-          onClick={handleSavePreset}
-          className="bg-[#0056b3] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
+          onClick={handleSavePresetName}
+          className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
+          title="Preset-Namen speichern"
         >
-          Preset speichern
-        </button>
-        <select
-          value={selectedPresetId || ""}
-          onChange={e => setSelectedPresetId(Number(e.target.value))}
-          className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
-        >
-          <option value="">Preset wählen…</option>
-          {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-        <button
-          onClick={handleTryLoadPreset}
-          className="bg-green-600 hover:bg-green-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
-        >
-          Preset laden
+          💾
         </button>
         <button
-          onClick={handleUndo}
-          disabled={undoStack.length === 0}
-          className="bg-yellow-400 text-black font-semibold px-2 py-1 rounded-full text-xs shadow transition disabled:bg-yellow-200"
+          onClick={() => {
+            setEditPresetId(null);
+            setEditPresetName('');
+          }}
+          className="bg-gray-300 hover:bg-gray-400 text-black font-semibold px-2 py-1 rounded-full text-xs shadow transition"
+          title="Abbrechen"
         >
-          Undo
+          ✖️
         </button>
-        <button
-          onClick={exportCSV}
-          className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
-        >
-          Export als CSV
-        </button>
-        {/* === NEUER BUTTON FÜR DEADLINES === */}
-        <button
-          onClick={handleReloadDeadlines}
-          className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
-        >
-          Bestellfristen nachladen
-        </button>
-      </div>
+      </>
+    ) : (
+      <button
+        onClick={() => {
+          const p = presets.find(p => p.id === selectedPresetId);
+          if (p) handleEditPresetName(p.id, p.name);
+        }}
+        disabled={!selectedPresetId}
+        className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold px-2 py-1 rounded-full text-xs shadow transition disabled:opacity-50"
+        title="Preset umbenennen"
+      >
+        ✏️ Umbenennen
+      </button>
+    )}
+    <button
+      onClick={handleUndo}
+      disabled={undoStack.length === 0}
+      className="bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-black dark:text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition disabled:opacity-50"
+      title="Undo"
+    >
+      ↩️ Undo
+    </button>
+    <button
+      onClick={exportCSV}
+      className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
+      title="CSV Export"
+    >
+      📤 Export
+    </button>
+    <button
+      onClick={handleReloadDeadlines}
+      className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-2 py-1 rounded-full text-xs shadow transition"
+      title="Bestellfristen neu berechnen"
+    >
+      ⏰ Fristen
+    </button>
+  </div>
+</fieldset>
 
       {/* Menüs Rendern pro Tag (mit Datum neben Wochentag) */}
       <div className="space-y-4">
