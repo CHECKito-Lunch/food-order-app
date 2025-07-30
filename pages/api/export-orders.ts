@@ -6,6 +6,7 @@ import SVGtoPDF from 'svg-to-pdfkit';
 import archiver from 'archiver';
 import fs from 'fs';
 import path from 'path';
+import { PassThrough } from 'stream';  // neu
 
 // Wenn Du direkt streamst, BodyParser abschalten
 export const config = {
@@ -35,9 +36,6 @@ interface Order {
   location: 'Nordpol' | 'Südpol';
   week_menu_id: number;
 }
-
-// Hilfs‑Typ für eine PDFDocument-Instanz
-type PDFDoc = InstanceType<typeof PDFDocument>;
 
 // Gruppiert Bestellungen pro Menü & Standort
 function groupOrders(orders: Order[], menus: WeekMenu[]) {
@@ -89,8 +87,9 @@ export default async function handler(
   const grouped   = groupOrders(orders as Order[], menus as WeekMenu[]);
   const locations: ('Nordpol' | 'Südpol')[] = ['Nordpol', 'Südpol'];
 
-  // 3) ZIP in Buffer sammeln
+  // 3) ZIP in Buffer sammeln über PassThrough
   const archive = archiver('zip', { zlib: { level: 9 } });
+  const pass = new PassThrough();
   const zipChunks: Buffer[] = [];
 
   archive.on('warning', (err: Error) => {
@@ -100,15 +99,19 @@ export default async function handler(
     console.error('Archiver error:', err);
     throw err;
   });
-  archive.on('data', (chunk: Buffer) => {
-    zipChunks.push(chunk);
-  });
+
+  archive.pipe(pass);
+  pass.on('data', (chunk: Buffer) => zipChunks.push(chunk));
 
   // 4) PDF-Blöcke erzeugen und in ZIP anhängen
   const badgePath = path.resolve('./public/checkito-lunch-badge.png');
   const logoPath  = path.resolve('./public/check24-logo.svg');
 
-  function drawBlock(doc: PDFDoc, x: number, entry: { menu: WeekMenu; names: string[] }) {
+  function drawBlock(
+    doc: PDFDocument,
+    x: number,
+    entry: { menu: WeekMenu; names: string[] }
+  ) {
     const { menu, names } = entry;
     // Weißer Hintergrund
     doc.rect(x, 0, 420, 595).fill('#ffffff');
