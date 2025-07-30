@@ -12,6 +12,7 @@ const supabase = createClient(
 );
 
 interface WeekMenu {
+  id: number;
   menu_number: number;
   description: string;
   day_of_week: number;
@@ -26,10 +27,32 @@ interface Order {
   week_menu_id: number;
 }
 
+function groupOrders(orders: Order[], menus: WeekMenu[]) {
+  const grouped: Record<string, { menu: WeekMenu; names: string[] }> = {};
+
+  for (const menu of menus) {
+    for (const location of ['Nordpol', 'Südpol']) {
+      const key = `${location}_${menu.id}`;
+      grouped[key] = { menu, names: [] };
+    }
+  }
+
+  for (const order of orders) {
+    const menu = menus.find(m => m.id === order.week_menu_id);
+    if (!menu) continue;
+    const key = `${order.location}_${menu.id}`;
+    if (grouped[key]) {
+      grouped[key].names.push(`${order.first_name} ${order.last_name}`);
+    }
+  }
+
+  return grouped;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const isoWeek = parseInt(req.query.isoWeek as string, 10);
   const isoYear = parseInt(req.query.isoYear as string, 10);
-  const day = parseInt(req.query.day as string, 10); // 1 = Montag
+  const day = parseInt(req.query.day as string, 10);
 
   if (isNaN(isoWeek) || isNaN(isoYear) || isNaN(day)) {
     return res.status(400).json({ error: 'Ungültige Parameter' });
@@ -37,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { data: menus } = await supabase
     .from('week_menus')
-    .select('menu_number, description, day_of_week, iso_week, iso_year')
+    .select('id, menu_number, description, day_of_week, iso_week, iso_year')
     .eq('iso_week', isoWeek)
     .eq('iso_year', isoYear)
     .eq('day_of_week', day);
@@ -50,114 +73,83 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Fehler beim Abrufen der Daten' });
   }
 
-  const archive = archiver('zip', { zlib: { level: 9 } });
+  const grouped = groupOrders(orders, menus as WeekMenu[]);
+  const locations: ('Nordpol' | 'Südpol')[] = ['Nordpol', 'Südpol'];
+
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader(
     'Content-Disposition',
-    `attachment; filename=PDF_Export_KW${isoWeek}_${isoYear}_Tag${day}.zip`
+    `attachment; filename=Menue_Export_KW${isoWeek}_${isoYear}_Tag${day}.zip`
   );
+
+  const archive = archiver('zip', { zlib: { level: 9 } });
   archive.pipe(res);
 
-  const topLogo = path.join(process.cwd(), 'public', 'checkito-lunch-badge.png');
-  const bottomLogo = path.join(process.cwd(), 'public', 'check24-logo.svg');
-  let bottomSvgContent = '';
-  try {
-    bottomSvgContent = fs.readFileSync(bottomLogo, 'utf-8');
-  } catch (err) {
-    console.error('Fehler beim Laden des Footer-Logos:', err);
-  }
+  const badgePath = path.resolve('./public/checkito-lunch-badge.png');
+  const logoPath = path.resolve('./public/check24-logo.svg');
 
-  const grouped: Record<string, { menu: WeekMenu; names: string[] }> = {};
+  for (const location of locations) {
+    const locationMenus = Object.entries(grouped)
+      .filter(([key]) => key.startsWith(location))
+      .filter(([, value]) => value.names.length > 0);
 
-  for (const menu of menus) {
-    for (const location of ['Nordpol', 'Südpol']) {
-      grouped[`${menu.menu_number}_${location}`] = {
-        menu,
-        names: orders
-          .filter(o => o.week_menu_id === menu.menu_number && o.location === location)
-          .map(o => `${o.first_name} ${o.last_name}`)
-      };
-    }
-  }
+    if (locationMenus.length === 0) continue;
 
-  const byLocation: Record<'Nordpol' | 'Südpol', string[]> = {
-    Nordpol: [],
-    Südpol: []
-  };
+    let menuNr = 1;
 
-  for (const key of Object.keys(grouped)) {
-    const [, location] = key.split('_');
-    const entry = grouped[key];
-    if (entry.names.length > 0) {
-      byLocation[location as 'Nordpol' | 'Südpol'].push(key);
-    }
-  }
-
-  for (const location of ['Nordpol', 'Südpol'] as const) {
-    const keys = byLocation[location];
-
-    for (let i = 0; i < keys.length; i += 2) {
+    for (let i = 0; i < locationMenus.length; i += 2) {
       const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 });
       const chunks: Uint8Array[] = [];
       doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
 
-      const drawMenu = (
-        xOffset: number,
-        entry: { menu: WeekMenu; names: string[] },
-        menuNr: number
+      const drawBlock = (
+        x: number,
+        menu: WeekMenu,
+        names: string[],
+        nr: number
       ) => {
-        // Logo oben
-        doc.image(topLogo, xOffset + 20, 20, { width: 60 });
+        doc.rect(x, 0, 420, 595).fill('#ffffff');
 
-        // Titel
-        doc.font('Helvetica-Bold')
-          .fontSize(18)
-          .text(`Menü ${menuNr} – ${location}`, xOffset, 120, {
-            width: 297,
+        doc.image(badgePath, x + 20, 20, { width: 80 });
+
+        doc.fillColor('black').font('Helvetica-Bold').fontSize(16)
+          .text(`Menü ${nr} – ${location}`, x + 60, 120, {
+            width: 300,
             align: 'center'
           });
 
-        // Sterne als Trenner
-        doc.font('Helvetica-Bold').fontSize(14).text('★ ★ ★', xOffset, 150, {
-          width: 297,
+        doc.fontSize(18).text('✶✶✶', x + 60, 150, {
+          width: 300,
           align: 'center'
         });
 
-        // Namen der Besteller
-        doc.font('Helvetica').fontSize(10);
-        let y = 180;
-        for (const name of entry.names) {
-          doc.text(name, xOffset, y, { width: 297, align: 'center' });
-          y += 14;
+        doc.font('Helvetica').fontSize(12);
+        let y = 190;
+        for (const name of names) {
+          doc.text(name, x + 60, y, { width: 300, align: 'center' });
+          y += 18;
         }
 
-        // Footer-Logo
-        if (bottomSvgContent) {
-          SVGtoPDF(doc, bottomSvgContent, xOffset + 297 - 100, 520, {
-            width: 80
-          });
-        }
+        SVGtoPDF(doc, fs.readFileSync(logoPath, 'utf-8'), x + 310, 520, { width: 90 });
       };
 
-      const entryLeft = grouped[keys[i]];
-      const entryRight = grouped[keys[i + 1]];
+      const first = locationMenus[i];
+      const second = locationMenus[i + 1];
 
-      drawMenu(30, entryLeft, i + 1);
+      drawBlock(0, first[1].menu, first[1].names, menuNr++);
 
-      if (entryRight) {
-        drawMenu(325, entryRight, i + 2);
+      if (second) {
+        drawBlock(420, second[1].menu, second[1].names, menuNr++);
       }
 
       doc.end();
-      await new Promise<void>(resolve => {
-        doc.on('end', () => {
-          const buffer = Buffer.concat(chunks);
-          archive.append(buffer, {
-            name: `Menü ${i + 1} – ${location}.pdf`
-          });
-          resolve();
-        });
+
+      const buffer = await new Promise<Buffer>((resolve) => {
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
       });
+
+      const filename = `Menü ${menuNr - (second ? 2 : 1)} – ${location}.pdf`;
+      archive.append(buffer, { name: filename });
     }
   }
 
