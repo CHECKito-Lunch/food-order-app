@@ -27,48 +27,52 @@ interface Order {
   week_menu_id: number;
 }
 
+// Gruppiert pro Menü und Standort
 function groupOrders(orders: Order[], menus: WeekMenu[]) {
   const grouped: Record<string, { menu: WeekMenu; names: string[] }> = {};
-
   for (const menu of menus) {
     for (const location of ['Nordpol', 'Südpol'] as const) {
-      const key = `${location}_${menu.id}`;
-      grouped[key] = { menu, names: [] };
+      grouped[`${location}_${menu.id}`] = { menu, names: [] };
     }
   }
-
   for (const order of orders) {
     const menu = menus.find(m => m.id === order.week_menu_id);
     if (!menu) continue;
-    const key = `${order.location}_${menu.id}`;
-    grouped[key].names.push(`${order.first_name} ${order.last_name}`);
+    grouped[`${order.location}_${menu.id}`].names.push(
+      `${order.first_name} ${order.last_name}`
+    );
   }
-
   return grouped;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   const isoWeek = parseInt(req.query.isoWeek as string, 10);
   const isoYear = parseInt(req.query.isoYear as string, 10);
   const day = parseInt(req.query.day as string, 10);
-
   if (isNaN(isoWeek) || isNaN(isoYear) || isNaN(day)) {
     return res.status(400).json({ error: 'Ungültige Parameter' });
   }
 
-  const { data: menus } = await supabase
+  const { data: menus, error: menuError } = await supabase
     .from('week_menus')
-    .select('id, menu_number, description, day_of_week, iso_week, iso_year')
+    .select(
+      'id, menu_number, description, day_of_week, iso_week, iso_year'
+    )
     .eq('iso_week', isoWeek)
     .eq('iso_year', isoYear)
     .eq('day_of_week', day);
 
-  const { data: orders } = await supabase
+  const { data: orders, error: orderError } = await supabase
     .from('orders')
     .select('first_name, last_name, location, week_menu_id');
 
-  if (!menus || !orders) {
-    return res.status(500).json({ error: 'Fehler beim Abrufen der Daten' });
+  if (menuError || orderError || !menus || !orders) {
+    return res
+      .status(500)
+      .json({ error: 'Fehler beim Abrufen der Daten' });
   }
 
   const grouped = groupOrders(orders as Order[], menus as WeekMenu[]);
@@ -86,67 +90,78 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const badgePath = path.resolve('./public/checkito-lunch-badge.png');
   const logoPath = path.resolve('./public/check24-logo.svg');
 
+  // Hilfsfunktion: eine Hälfte einer Seite zeichnen
+  const drawBlock = (
+    doc: PDFKit.PDFDocument,
+    x: number,
+    entry: { menu: WeekMenu; names: string[] }
+  ) => {
+    const { menu, names } = entry;
+    // Hintergrund
+    doc.rect(x, 0, 420, 595).fill('#ffffff');
+    // Badge oben links
+    doc.image(badgePath, x + 20, 20, { width: 80 });
+    // Titel mit realer Gerichts-Bezeichnung
+    doc
+      .fillColor('black')
+      .font('Helvetica-Bold')
+      .fontSize(16)
+      .text(
+        `Menü ${menu.menu_number} – ${menu.description}`,
+        x + 20,
+        120,
+        { width: 380, align: 'center' }
+      );
+    // Besteller-Namen
+    doc.font('Helvetica').fontSize(12);
+    let y = 180;
+    for (const name of names) {
+      doc.text(name, x + 20, y, { width: 380, align: 'center' });
+      y += 18;
+    }
+    // CHECK24-Logo unten rechts
+    SVGtoPDF(
+      doc,
+      fs.readFileSync(logoPath, 'utf-8'),
+      x + 330,
+      500,
+      { width: 80 }
+    );
+  };
+
+  // Pro Standort jeweils 2 A5-Blöcke auf A4 Quer
   for (const location of locations) {
-    const locationMenus = Object.values(grouped)
-      .filter(entry => entry.menu.day_of_week === day)
-      .filter(entry => entry.names.length > 0 && entry.menu)
-      .filter(entry => Object.keys(grouped).some(k => k.startsWith(location) && grouped[k] === entry));
+    const keys = Object.keys(grouped)
+      .filter(k => k.startsWith(location))
+      .filter(k => grouped[k].names.length > 0);
 
-    if (locationMenus.length === 0) continue;
-
-    for (let i = 0; i < locationMenus.length; i += 2) {
-      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 });
+    for (let i = 0; i < keys.length; i += 2) {
+      const doc = new PDFDocument({
+        size: 'A4',
+        layout: 'landscape',
+        margin: 0,
+      });
       const chunks: Uint8Array[] = [];
-      doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
+      doc.on('data', chunk => chunks.push(chunk));
 
-      const pair = locationMenus.slice(i, i + 2);
-
-      const drawBlock = (x: number, entry: { menu: WeekMenu; names: string[] }) => {
-        const { menu, names } = entry;
-        // Weißen Hintergrund zeichnen
-        doc.rect(x, 0, 420, 595).fill('#ffffff');
-
-        // Badge oben links
-        doc.image(badgePath, x + 20, 20, { width: 80 });
-
-        // Titel mit realer Menünummer
-        doc.fillColor('black').font('Helvetica-Bold').fontSize(16)
-          .text(`Menü ${menu.menu_number} – ${location}`, x + 60, 120, {
-            width: 300,
-            align: 'center'
-          });
-
-        // Abstand vor Namen
-        doc.font('Helvetica').fontSize(12);
-        let y = 190;
-        for (const name of names) {
-          doc.text(name, x + 60, y, { width: 300, align: 'center' });
-          y += 18;
-        }
-
-        // CHECK24-Logo unten rechts
-        SVGtoPDF(doc, fs.readFileSync(logoPath, 'utf-8'), x + 310, 500, { width: 90 });
-      };
-
-      // Linke Hälfte
-      drawBlock(0, pair[0]);
-
-      // Rechte Hälfte, falls vorhanden
-      if (pair[1]) {
-        drawBlock(420, pair[1]);
-      }
-
+      const pair = keys.slice(i, i + 2).map(k => grouped[k]);
+      // linke Hälfte
+      drawBlock(doc, 0, pair[0]);
+      // rechte Hälfte, falls vorhanden
+      if (pair[1]) drawBlock(doc, 420, pair[1]);
       doc.end();
 
-      const buffer = await new Promise<Buffer>(resolve => {
-        doc.on('end', () => resolve(Buffer.concat(chunks)));
-      });
+      const buffer = await new Promise<Buffer>(resolve =>
+        doc.on('end', () => resolve(Buffer.concat(chunks)))
+      );
 
-      // Dateiname mit realer Menünummer
-      const leftMenuNr = pair[0].menu.menu_number;
-      archive.append(buffer, { name: `Menü ${leftMenuNr} – ${location}.pdf` });
+      // Dateiname enthält Standort, Titel inhaltlich nur Gerichts‑Bezeichnung
+      const menuNr = pair[0].menu.menu_number;
+      archive.append(buffer, {
+        name: `Menü ${menuNr} – ${location}.pdf`,
+      });
     }
   }
 
-  archive.finalize();
+  await archive.finalize();
 }
