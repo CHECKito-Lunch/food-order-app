@@ -18,7 +18,7 @@ interface WeekMenu {
   day_of_week: number;
   iso_week: number;
   iso_year: number;
-   in_fridge: boolean;   
+  in_fridge: boolean;
 }
 
 interface Order {
@@ -52,11 +52,12 @@ export default async function handler(
 ) {
   const isoWeek = parseInt(req.query.isoWeek as string, 10);
   const isoYear = parseInt(req.query.isoYear as string, 10);
-  const day = parseInt(req.query.day as string, 10);
+  const day     = parseInt(req.query.day as string, 10);
   if (isNaN(isoWeek) || isNaN(isoYear) || isNaN(day)) {
     return res.status(400).json({ error: 'Ungültige Parameter' });
   }
 
+  // Daten abrufen
   const { data: menus, error: menuError } = await supabase
     .from('week_menus')
     .select('id, menu_number, description, day_of_week, iso_week, iso_year, in_fridge')
@@ -69,12 +70,14 @@ export default async function handler(
     .select('first_name, last_name, location, week_menu_id');
 
   if (menuError || orderError || !menus || !orders) {
+    console.error(menuError || orderError);
     return res.status(500).json({ error: 'Fehler beim Abrufen der Daten' });
   }
 
-  const grouped = groupOrders(orders as Order[], menus as WeekMenu[]);
+  const grouped   = groupOrders(orders as Order[], menus as WeekMenu[]);
   const locations: ('Nordpol' | 'Südpol')[] = ['Nordpol', 'Südpol'];
 
+  // ZIP-Header
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader(
     'Content-Disposition',
@@ -82,36 +85,40 @@ export default async function handler(
   );
 
   const archive = archiver('zip', { zlib: { level: 9 } });
+  archive.on('error', (err: Error) => {
+    console.error('Archiver error:', err);
+    res.status(500).end();
+  });
   archive.pipe(res);
 
   const badgePath = path.resolve('./public/checkito-lunch-badge.png');
-  const logoPath = path.resolve('./public/check24-logo.svg');
+  const logoPath  = path.resolve('./public/check24-logo.svg');
 
-  // Zeichnet einen A5-Block bei x
+  // Eine Hälfte der A4-Seite zeichnen
   const drawBlock = (
-    doc: PDFKit.PDFDocument,
+    doc: PDFDocument,
     x: number,
     entry: { menu: WeekMenu; names: string[] }
   ) => {
     const { menu, names } = entry;
-    // Hintergrund
+    // Weißer Hintergrund
     doc.rect(x, 0, 420, 595).fill('#ffffff');
 
-    // Gesamtzahl fett oben rechts
+    // Bestellanzahl oben rechts
     doc
       .font('Helvetica-Bold')
       .fontSize(14)
       .fillColor('black')
       .text(`${names.length}×`, x + 360, 30, { width: 40, align: 'right' });
 
-    // Badge etwas tiefer
+    // Badge
     doc.image(badgePath, x + 20, 20, { width: 80 });
 
-    // Titel etwas tiefer beginnen
+    // Titel
     doc
-      .fillColor('black')
       .font('Helvetica-Bold')
       .fontSize(16)
+      .fillColor('black')
       .text(
         `Menü ${menu.menu_number} – ${menu.description}`,
         x + 20,
@@ -119,19 +126,20 @@ export default async function handler(
         { width: 380, align: 'center' }
       );
 
-    // Besteller-Namen
+    // Namen
     doc.font('Helvetica').fontSize(12);
-    let y = 220;
-    for (const name of names) {
-      doc.text(name, x + 20, y, { width: 380, align: 'center' });
-      y += 18;
+    let yPos = 220;
+    for (const n of names) {
+      doc.text(n, x + 20, yPos, { width: 380, align: 'center' });
+      yPos += 18;
     }
- // Falls im Kühlschrank: roten Hinweis ganz unten
+
+    // Kühlschrank-Hinweis
     if (menu.in_fridge) {
       doc
-        .fillColor('red')
         .font('Helvetica-Bold')
         .fontSize(12)
+        .fillColor('red')
         .text(
           'befindet sich im Kühlschrank',
           x + 20,
@@ -139,7 +147,8 @@ export default async function handler(
           { width: 380, align: 'center' }
         );
     }
-    // CHECK24-Logo unten rechts
+
+    // Logo unten rechts
     SVGtoPDF(
       doc,
       fs.readFileSync(logoPath, 'utf-8'),
@@ -149,11 +158,10 @@ export default async function handler(
     );
   };
 
-  // Pro Standort jeweils 2 A5-Blöcke auf A4 Quer
+  // Pro Standort je 2 A5-Blöcke auf A4 quer
   for (const location of locations) {
     const keys = Object.keys(grouped)
-      .filter(k => k.startsWith(location))
-      .filter(k => grouped[k].names.length > 0);
+      .filter(k => k.startsWith(location));
 
     for (let i = 0; i < keys.length; i += 2) {
       const doc = new PDFDocument({
@@ -161,11 +169,16 @@ export default async function handler(
         layout: 'landscape',
         margin: 0,
       });
+      doc.on('error', (err: Error) => {
+        console.error('PDF error:', err);
+        archive.abort();
+      });
+
       const chunks: Uint8Array[] = [];
-      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
 
       const pair = keys.slice(i, i + 2).map(k => grouped[k]);
-      drawBlock(doc, 0, pair[0]);
+      drawBlock(doc,   0, pair[0]);
       if (pair[1]) drawBlock(doc, 420, pair[1]);
 
       doc.end();
@@ -174,11 +187,8 @@ export default async function handler(
         doc.on('end', () => resolve(Buffer.concat(chunks)))
       );
 
-      // Dateiname mit realer Menünummer und Standort
       const menuNr = pair[0].menu.menu_number;
-      archive.append(buffer, {
-        name: `Menü ${menuNr} – ${location}.pdf`,
-      });
+      archive.append(buffer, { name: `Menü ${menuNr} – ${location}.pdf` });
     }
   }
 
