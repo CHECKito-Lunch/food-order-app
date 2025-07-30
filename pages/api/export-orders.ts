@@ -58,8 +58,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   );
   archive.pipe(res);
 
-  const topLogo = path.resolve('./public/checkito-lunch-badge.png');
-  const bottomLogo = path.resolve('./public/check24-logo.svg');
+  const topLogo = path.join(process.cwd(), 'public', 'checkito-lunch-badge.png');
+  const bottomLogo = path.join(process.cwd(), 'public', 'check24-logo.svg');
+  let bottomSvgContent = '';
+  try {
+    bottomSvgContent = fs.readFileSync(bottomLogo, 'utf-8');
+  } catch (err) {
+    console.error('Fehler beim Laden des Footer-Logos:', err);
+  }
 
   const grouped: Record<string, { menu: WeekMenu; names: string[] }> = {};
 
@@ -100,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         entry: { menu: WeekMenu; names: string[] },
         menuNr: number
       ) => {
-        // Logo links oben
+        // Logo oben
         doc.image(topLogo, xOffset + 20, 20, { width: 60 });
 
         // Titel
@@ -111,13 +117,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             align: 'center'
           });
 
-        // Sterntrenner
+        // Sterne als Trenner
         doc.font('Helvetica-Bold').fontSize(14).text('★ ★ ★', xOffset, 150, {
           width: 297,
           align: 'center'
         });
 
-        // Namen
+        // Namen der Besteller
         doc.font('Helvetica').fontSize(10);
         let y = 180;
         for (const name of entry.names) {
@@ -125,10 +131,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           y += 14;
         }
 
-        // CHECK24 Logo unten rechts
-        SVGtoPDF(doc, fs.readFileSync(bottomLogo, 'utf-8'), xOffset + 297 - 100, 520, {
-          width: 80
-        });
+        // Footer-Logo
+        if (bottomSvgContent) {
+          SVGtoPDF(doc, bottomSvgContent, xOffset + 297 - 100, 520, {
+            width: 80
+          });
+        }
       };
 
       const entryLeft = grouped[keys[i]];
