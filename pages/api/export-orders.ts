@@ -18,6 +18,7 @@ interface WeekMenu {
   day_of_week: number;
   iso_week: number;
   iso_year: number;
+   in_fridge: boolean;   
 }
 
 interface Order {
@@ -58,7 +59,7 @@ export default async function handler(
 
   const { data: menus, error: menuError } = await supabase
     .from('week_menus')
-    .select('id, menu_number, description, day_of_week, iso_week, iso_year')
+    .select('id, menu_number, description, day_of_week, iso_week, iso_year, in_fridge')
     .eq('iso_week', isoWeek)
     .eq('iso_year', isoYear)
     .eq('day_of_week', day);
@@ -125,7 +126,19 @@ export default async function handler(
       doc.text(name, x + 20, y, { width: 380, align: 'center' });
       y += 18;
     }
-
+ // Falls im Kühlschrank: roten Hinweis ganz unten
+    if (menu.in_fridge) {
+      doc
+        .fillColor('red')
+        .font('Helvetica-Bold')
+        .fontSize(12)
+        .text(
+          'befindet sich im Kühlschrank',
+          x + 20,
+          560,
+          { width: 380, align: 'center' }
+        );
+    }
     // CHECK24-Logo unten rechts
     SVGtoPDF(
       doc,
