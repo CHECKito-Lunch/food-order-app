@@ -4,6 +4,7 @@ import dayjs from '../lib/dayjs';
 import Login from './login';
 import { useRouter } from 'next/router';
 import { LogOut, Shield, User, ChevronDown, ChevronUp, Edit, KeyRound } from 'lucide-react';
+import { FiCheckCircle } from "react-icons/fi";
 
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
 
@@ -26,12 +27,26 @@ interface Profile {
   role: string;
 }
 
+// === Snackbar-Komponente ===
+function Snackbar({ show, summary }: { show: boolean, summary: string }) {
+  if (!show) return null;
+  return (
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-green-600 text-white px-6 py-3 rounded-2xl shadow-xl z-50 animate-fadeIn">
+      <FiCheckCircle size={28} className="text-white drop-shadow" />
+      <div>
+        <div className="font-semibold">Bestellung eingegangen!</div>
+        <div className="text-xs opacity-90">{summary}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const today = dayjs();
   const nextWeek = today.add(1, 'week');
   const router = useRouter();
 
-  // Änderung 1: Standardmäßig immer nächste Woche vorauswählen!
+  // Standardmäßig immer nächste Woche vorauswählen!
   const [selectedYear, setSelectedYear] = useState(nextWeek.year());
   const [selectedWeek, setSelectedWeek] = useState(nextWeek.week());
 
@@ -49,6 +64,15 @@ export default function Dashboard() {
   const [password1, setPassword1] = useState('');
   const [password2, setPassword2] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
+
+  // --- NEU: Bestellstatus (Loader/Snackbar) ---
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [showSnackbar, setShowSnackbar] = useState(false);
+  const [snackbarSummary, setSnackbarSummary] = useState('');
+
+  // --- Auch für Profil-Save ein Loader/Feedback ---
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSavedSnackbar, setProfileSavedSnackbar] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -106,12 +130,31 @@ export default function Dashboard() {
     }
   }
 
+  // Loader
   if (loading) return <div className="h-screen flex items-center justify-center text-lg dark:bg-gray-900 dark:text-gray-100">Lädt...</div>;
   if (!user) return <Login />;
 
   if (needsProfile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-blue-50 dark:bg-gray-900">
+        {(savingProfile || profileSavedSnackbar) && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-30">
+            {savingProfile ? (
+              <div className="bg-white rounded-2xl px-6 py-5 flex items-center gap-3 shadow-xl border border-blue-200">
+                <svg className="animate-spin h-6 w-6 text-blue-600" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                <span className="text-base font-semibold text-[#0056b3]">Profil wird gespeichert…</span>
+              </div>
+            ) : (
+              <div className="bg-green-600 text-white px-6 py-4 rounded-2xl flex items-center gap-3 shadow-xl">
+                <FiCheckCircle size={28} className="text-white" />
+                <div className="font-semibold">Profil gespeichert!</div>
+              </div>
+            )}
+          </div>
+        )}
         <div className="bg-white dark:bg-gray-800 border border-blue-100 dark:border-gray-700 rounded-2xl shadow-md p-6 md:p-8 max-w-md text-center">
           <h2 className="text-xl font-bold text-[#0056b3] dark:text-blue-200 mb-4">Profil vervollständigen</h2>
           <p className="mb-6 text-gray-700 dark:text-gray-200">
@@ -150,7 +193,28 @@ export default function Dashboard() {
               <option value="Südpol">Südpol</option>
             </select>
             <div className="flex gap-3 mt-2">
-              <button className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full" onClick={saveProfile}>Speichern</button>
+              <button
+                className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full"
+                onClick={async () => {
+                  setSavingProfile(true);
+                  await supabase.from('profiles').update({
+                    first_name: profileEdit.first_name,
+                    last_name: profileEdit.last_name,
+                    location: profileEdit.location,
+                  }).eq('id', profile!.id);
+                  const { data: updatedProfile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', profile!.id)
+                    .single();
+                  setProfile(updatedProfile);
+                  setProfileEdit(updatedProfile);
+                  setEditingProfile(false);
+                  setSavingProfile(false);
+                  setProfileSavedSnackbar(true);
+                  setTimeout(() => setProfileSavedSnackbar(false), 2200);
+                }}
+              >Speichern</button>
               <button className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full" onClick={() => setEditingProfile(false)}>Abbrechen</button>
             </div>
           </div>
@@ -164,10 +228,15 @@ export default function Dashboard() {
     return orders.find(o => menuIds.includes(o.week_menu_id));
   };
 
+  // NEU: handleOrder mit Snackbar & Loader
   const handleOrder = async (menu: WeekMenu) => {
     if (!profile) return;
     const isDeadline = dayjs(menu.order_deadline).isBefore(dayjs());
     if (isDeadline) return alert("Bestellfrist vorbei!");
+
+    setSavingOrder(true);
+    setShowSnackbar(false);
+
     const menuIdsToday = menus.filter(m => m.day_of_week === menu.day_of_week).map(m => m.id);
     const existingOrder = orders.find(o => menuIdsToday.includes(o.week_menu_id));
     if (existingOrder && existingOrder.week_menu_id !== menu.id) {
@@ -185,36 +254,40 @@ export default function Dashboard() {
         menu_description: menu.description,
       });
     }
+    // Neu: Orders aktualisieren
     const { data: orderData } = await supabase
       .from('orders')
       .select('id, week_menu_id')
       .eq('user_id', user.id);
     setOrders((orderData ?? []) as Order[]);
-  };
 
-  async function saveProfile() {
-    if (!profile) return;
-    await supabase.from('profiles').update({
-      first_name: profileEdit.first_name,
-      last_name: profileEdit.last_name,
-      location: profileEdit.location,
-    }).eq('id', profile.id);
-    const { data: updatedProfile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', profile.id)
-      .single();
-    setProfile(updatedProfile);
-    setProfileEdit(updatedProfile);
-    setEditingProfile(false);
-    alert("Profil gespeichert!");
-  }
+    // Kurze Zusammenfassung bauen (Tag, Menü, Woche)
+    const wochentag = WEEKDAYS[menu.day_of_week - 1] || '';
+    setSnackbarSummary(`Du hast am ${wochentag} das Menü "${menu.description}" für KW ${selectedWeek} bestellt.`);
+    setShowSnackbar(true);
+    setSavingOrder(false);
+    setTimeout(() => setShowSnackbar(false), 2500);
+  };
 
   const yearOptions = Array.from({ length: 10 }, (_, i) => today.year() - 5 + i);
   const weekOptions = Array.from({ length: 53 }, (_, i) => i + 1);
 
   return (
     <div className="max-w-3xl mx-auto px-3 py-6 md:px-6 md:py-12 space-y-10 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
+      {/* Loader während Bestellung */}
+      {savingOrder && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-2xl px-6 py-5 flex items-center gap-3 shadow-xl border border-blue-200">
+            <svg className="animate-spin h-6 w-6 text-blue-600" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            <span className="text-base font-semibold text-[#0056b3]">Bestellung wird gespeichert…</span>
+          </div>
+        </div>
+      )}
+      <Snackbar show={showSnackbar} summary={snackbarSummary} />
+
       {/* Header */}
       <div className="rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-4 md:p-6">
         <div>
@@ -364,25 +437,46 @@ export default function Dashboard() {
                 <option value="Südpol">Südpol</option>
               </select>
               <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                <button className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full sm:w-auto" onClick={saveProfile}>Speichern</button>
+                <button
+                  className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full sm:w-auto"
+                  onClick={async () => {
+                    setSavingProfile(true);
+                    await supabase.from('profiles').update({
+                      first_name: profileEdit.first_name,
+                      last_name: profileEdit.last_name,
+                      location: profileEdit.location,
+                    }).eq('id', profile!.id);
+                    const { data: updatedProfile } = await supabase
+                      .from('profiles')
+                      .select('*')
+                      .eq('id', profile!.id)
+                      .single();
+                    setProfile(updatedProfile);
+                    setProfileEdit(updatedProfile);
+                    setEditingProfile(false);
+                    setSavingProfile(false);
+                    setProfileSavedSnackbar(true);
+                    setTimeout(() => setProfileSavedSnackbar(false), 2200);
+                  }}
+                >Speichern</button>
                 <button className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full sm:w-auto" onClick={() => setEditingProfile(false)}>Abbrechen</button>
               </div>
             </div>
           )
         )}
       </div>
- {/* >>>>>>  LEGENDE  <<<<<< */}
-    <div className="flex items-center gap-5 mb-2 text-sm">
-      <span className="flex items-center gap-1">
-        <span role="img" aria-label="Vegetarisch" className="text-lg">🥦</span>
-        Vegetarisch
-      </span>
-      <span className="flex items-center gap-1">
-        <span role="img" aria-label="Vegan" className="text-lg">🌱</span>
-        Vegan
-      </span>
-    </div>
-    {/* <<<<<<<<<<<<<<<< */}
+      {/* >>>>>>  LEGENDE  <<<<<< */}
+      <div className="flex items-center gap-5 mb-2 text-sm">
+        <span className="flex items-center gap-1">
+          <span role="img" aria-label="Vegetarisch" className="text-lg">🥦</span>
+          Vegetarisch
+        </span>
+        <span className="flex items-center gap-1">
+          <span role="img" aria-label="Vegan" className="text-lg">🌱</span>
+          Vegan
+        </span>
+      </div>
+      {/* <<<<<<<<<<<<<<<< */}
 
       {/* Menü + Bestellungen */}
       <div className="space-y-6">
@@ -459,17 +553,16 @@ export default function Dashboard() {
                       <span>
                         <span className="font-semibold">Nr:</span> {m.menu_number} – 
                         <span className="font-medium">
-  {m.description}
-  {m.is_veggie && (
-    <span title="Vegetarisch" className="ml-1" role="img" aria-label="Vegetarisch">🥦</span>
-  )}
-  {m.is_vegan && (
-    <span title="Vegan" className="ml-1" role="img" aria-label="Vegan">🌱</span>
-  )}
-</span>
+                          {m.description}
+                          {m.is_veggie && (
+                            <span title="Vegetarisch" className="ml-1" role="img" aria-label="Vegetarisch">🥦</span>
+                          )}
+                          {m.is_vegan && (
+                            <span title="Vegan" className="ml-1" role="img" aria-label="Vegan">🌱</span>
+                          )}
+                        </span>
                         <br />
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {/* Änderung 2: DEADLINE immer lokal anzeigen! */}
                           Deadline: {dayjs.utc(m.order_deadline).tz('Europe/Berlin').format('DD.MM.YYYY HH:mm')}
                           {isDeadline && (
                             <b className="text-red-600 font-bold ml-1">(abgelaufen)</b>
