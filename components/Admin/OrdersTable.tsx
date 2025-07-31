@@ -30,6 +30,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
   const [orders, setOrders] = useState<OrderAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(1);
+  const [loadingPdf, setLoadingPdf] = useState(false);
 
   useEffect(() => {
     async function fetchOrders() {
@@ -110,6 +111,26 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
     URL.revokeObjectURL(url);
   }
 
+  async function handlePdfExport() {
+    setLoadingPdf(true);
+    try {
+      const res = await fetch(
+        `/api/export-orders?isoWeek=${isoWeek}&isoYear=${isoYear}&day=${selectedDay}`
+      );
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `PDF_Export_KW${isoWeek}_${isoYear}_Tag${selectedDay}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingPdf(false);
+    }
+  }
+
   return (
     <div className="w-full">
       {/* Buttons on a single line */}
@@ -142,19 +163,41 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         </div>
 
         <button
-          onClick={async () => {
-            const res = await fetch(`/api/export-orders?isoWeek=${isoWeek}&isoYear=${isoYear}&day=${selectedDay}`);
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `PDF_Export_KW${isoWeek}_${isoYear}_Tag${selectedDay}.zip`;
-            a.click();
-            URL.revokeObjectURL(url);
-          }}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs"
+          onClick={handlePdfExport}
+          disabled={loadingPdf}
+          className={`
+            bg-purple-600 hover:bg-purple-700 text-white
+            px-3 py-1.5 rounded-full shadow font-semibold
+            transition text-xs flex items-center gap-2
+            ${loadingPdf ? 'opacity-70 cursor-wait' : ''}
+          `}
         >
-          PDF Export (Querformat)
+          {loadingPdf ? (
+            <>
+              <svg
+                className="animate-spin h-4 w-4"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
+              </svg>
+              Lädt…
+            </>
+          ) : (
+            'PDF Export (Querformat)'
+          )}
         </button>
       </div>
 
