@@ -4,7 +4,7 @@ import dayjs from '../lib/dayjs';
 import Login from './login';
 import { useRouter } from 'next/router';
 import { LogOut, Shield, User, ChevronDown, ChevronUp, Edit, KeyRound } from 'lucide-react';
-import { FiCheckCircle } from "react-icons/fi";
+import { FiCheckCircle } from 'react-icons/fi';
 
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
 
@@ -28,7 +28,7 @@ interface Profile {
 }
 
 // === Snackbar-Komponente ===
-function Snackbar({ show, summary }: { show: boolean, summary: string }) {
+function Snackbar({ show, summary }: { show: boolean; summary: string }) {
   if (!show) return null;
   return (
     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-green-600 text-white px-6 py-3 rounded-2xl shadow-xl z-50 animate-fadeIn">
@@ -70,10 +70,15 @@ export default function Dashboard() {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [snackbarSummary, setSnackbarSummary] = useState('');
 
-  // --- Auch für Profil-Save ein Loader/Feedback ---
+  // --- Profil-Save Loader / Feedback ---
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSavedSnackbar, setProfileSavedSnackbar] = useState(false);
 
+  // --- NEU: Deadline-Banner State & Effect ---
+  const [deadlineReminders, setDeadlineReminders] = useState<WeekMenu[]>([]);
+  const [showBanner, setShowBanner] = useState(true);
+
+  // Session holen
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
@@ -81,22 +86,23 @@ export default function Dashboard() {
     });
   }, []);
 
+  // Menüs, Orders & Profile holen
   useEffect(() => {
     if (!user) return;
     (async () => {
       const { data: menuData } = await supabase
         .from('week_menus')
-        .select('id, day_of_week, menu_number, description, order_deadline, is_veggie, is_vegan')
+        .select('id, day_of_week, menu_number, description, order_deadline, is_veggie, is_vegan, iso_year, iso_week')
         .eq('iso_year', selectedYear)
         .eq('iso_week', selectedWeek)
         .order('day_of_week');
-      setMenus((menuData ?? []) as WeekMenu[]);
+      setMenus(menuData ?? []);
 
       const { data: orderData } = await supabase
         .from('orders')
         .select('id, week_menu_id')
         .eq('user_id', user.id);
-      setOrders((orderData ?? []) as Order[]);
+      setOrders(orderData ?? []);
 
       const { data: profileData } = await supabase
         .from('profiles')
@@ -108,12 +114,41 @@ export default function Dashboard() {
     })();
   }, [user, selectedYear, selectedWeek]);
 
+  // Deadline-Erinnerungen (nächste 24h)
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const now = new Date();
+      const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const { data, error } = await supabase
+        .from('week_menus')
+        .select('id, day_of_week, menu_number, order_deadline')
+        .eq('iso_year', selectedYear)
+        .eq('iso_week', selectedWeek)
+        .gte('order_deadline', now.toISOString())
+        .lte('order_deadline', in24h.toISOString());
+      if (error) {
+        console.error('Fehler beim Laden der Deadlines:', error);
+      } else {
+        setDeadlineReminders(data ?? []);
+        setShowBanner(true);
+      }
+    })();
+  }, [user, selectedYear, selectedWeek]);
+
+  // Banner automatisch schließen, wenn keine Reminders
+  useEffect(() => {
+    if (deadlineReminders.length === 0) {
+      setShowBanner(false);
+    }
+  }, [deadlineReminders]);
+
   const needsProfile = profile && (
     !profile.first_name ||
     !profile.last_name ||
     !profile.location
   );
-
+  // Passwort ändern
   async function handlePasswordChange() {
     if (!password1 || !password2) return alert("Bitte beide Felder ausfüllen.");
     if (password1 !== password2) return alert("Passwörter stimmen nicht überein.");
@@ -130,10 +165,11 @@ export default function Dashboard() {
     }
   }
 
-  // Loader
+  // Loader / Redirects
   if (loading) return <div className="h-screen flex items-center justify-center text-lg dark:bg-gray-900 dark:text-gray-100">Lädt...</div>;
   if (!user) return <Login />;
 
+  // Profil vervollständigen
   if (needsProfile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-blue-50 dark:bg-gray-900">
@@ -215,7 +251,10 @@ export default function Dashboard() {
                   setTimeout(() => setProfileSavedSnackbar(false), 2200);
                 }}
               >Speichern</button>
-              <button className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full" onClick={() => setEditingProfile(false)}>Abbrechen</button>
+              <button
+                className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full"
+                onClick={() => setEditingProfile(false)}
+              >Abbrechen</button>
             </div>
           </div>
         )}
@@ -223,12 +262,13 @@ export default function Dashboard() {
     );
   }
 
+  // Hilfsfunktion, um vorhandene Bestellung zu finden
   const getOrderForDay = (day: number) => {
     const menuIds = menus.filter(m => m.day_of_week === day).map(m => m.id);
     return orders.find(o => menuIds.includes(o.week_menu_id));
   };
 
-  // NEU: handleOrder mit Snackbar & Loader
+  // Bestellung anlegen / löschen mit Snackbar
   const handleOrder = async (menu: WeekMenu) => {
     if (!profile) return;
     const isDeadline = dayjs(menu.order_deadline).isBefore(dayjs());
@@ -239,12 +279,10 @@ export default function Dashboard() {
 
     const menuIdsToday = menus.filter(m => m.day_of_week === menu.day_of_week).map(m => m.id);
     const existingOrder = orders.find(o => menuIdsToday.includes(o.week_menu_id));
-    if (existingOrder && existingOrder.week_menu_id !== menu.id) {
+    if (existingOrder) {
       await supabase.from('orders').delete().eq('id', existingOrder.id);
     }
-    if (existingOrder && existingOrder.week_menu_id === menu.id) {
-      await supabase.from('orders').delete().eq('id', existingOrder.id);
-    } else {
+    if (!existingOrder || existingOrder.week_menu_id !== menu.id) {
       await supabase.from('orders').insert({
         user_id: user.id,
         week_menu_id: menu.id,
@@ -254,16 +292,15 @@ export default function Dashboard() {
         menu_description: menu.description,
       });
     }
-    // Neu: Orders aktualisieren
+
     const { data: orderData } = await supabase
       .from('orders')
       .select('id, week_menu_id')
       .eq('user_id', user.id);
-    setOrders((orderData ?? []) as Order[]);
+    setOrders(orderData ?? []);
 
-    // Kurze Zusammenfassung bauen (Tag, Menü, Woche)
     const wochentag = WEEKDAYS[menu.day_of_week - 1] || '';
-    setSnackbarSummary(`Du hast am ${wochentag} das Menü "${menu.description}" für KW ${selectedWeek} bestellt (nur für Danny 🤌🏻).`);
+    setSnackbarSummary(`Du hast am ${wochentag} das Menü "${menu.description}" für KW ${selectedWeek} bestellt.`);
     setShowSnackbar(true);
     setSavingOrder(false);
     setTimeout(() => setShowSnackbar(false), 2500);
@@ -274,6 +311,45 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-3xl mx-auto px-3 py-6 md:px-6 md:py-12 space-y-10 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
+
+           {/* SMOOTH DEADLINE BANNER */}
+      {deadlineReminders.length > 0 && showBanner && (() => {
+        const next = deadlineReminders[0];
+        const diffHours = dayjs(next.order_deadline).diff(dayjs(), 'hour');
+        const diffMinutes = dayjs(next.order_deadline)
+          .diff(dayjs().add(diffHours, 'hour'), 'minute');
+        const tagName = WEEKDAYS[next.day_of_week - 1];
+        const datum = dayjs(next.order_deadline).format('DD.MM.YYYY');
+        const handleClose = () => {
+          setShowBanner(false);
+          setTimeout(() => setDeadlineReminders([]), 500);
+        };
+        return (
+          <div
+            className={`
+              relative
+              bg-red-200 text-gray-800
+              text-center px-6 py-4
+              rounded-lg shadow-lg mt-4
+              transition-opacity duration-500 ease-in-out
+              ${showBanner ? 'opacity-100' : 'opacity-0'}
+            `}
+          >
+            <button
+              onClick={handleClose}
+              className="absolute top-2 right-3 text-gray-800 text-2xl font-bold hover:scale-110 transition-transform"
+              aria-label="Schließen"
+            >
+              ×
+            </button>
+            <p className="font-medium">
+              Achtung! Für <strong>{tagName}</strong> den <strong>{datum}</strong> läuft die Bestellfrist
+              in <strong>{diffHours}h {diffMinutes}m</strong> aus!
+            </p>
+          </div>
+        );
+      })()}
+
       {/* Loader während Bestellung */}
       {savingOrder && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-30">
@@ -349,123 +425,120 @@ export default function Dashboard() {
       <div className="border border-blue-100 dark:border-gray-700 rounded-2xl shadow bg-white dark:bg-gray-800 p-4 md:p-6">
         <button
           className="flex items-center w-full justify-between text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-4 focus:outline-none"
-          onClick={() => setProfileOpen((v) => !v)}
+          onClick={() => setProfileOpen(v => !v)}
         >
           <span className="flex items-center gap-2"><User className="w-6 h-6" /> Mein Profil</span>
           {profileOpen ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
         </button>
-        {profileOpen && (
-          !editingProfile ? (
-            <div className="space-y-3 animate-fade-in">
-              <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
-                <div className="mb-1"><span className="font-semibold">Vorname:</span> <span>{profile?.first_name}</span></div>
-                <div><span className="font-semibold">Nachname:</span> <span>{profile?.last_name}</span></div>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
-                <div><span className="font-semibold">Standort:</span> <span>{profile?.location}</span></div>
-              </div>
-              <button
-                className="mt-4 flex items-center justify-center gap-2 px-5 py-1.5 rounded-full bg-[#0056b3] dark:bg-blue-600 text-white text-sm font-bold shadow hover:bg-blue-800 dark:hover:bg-blue-700 transition w-full sm:w-auto"
-                onClick={() => setEditingProfile(true)}
-              ><Edit className="w-4 h-4" /> Bearbeiten</button>
-              {/* Passwort ändern Button */}
-              <button
-                className="mt-2 flex items-center justify-center gap-2 px-5 py-1.5 rounded-full bg-gray-400 dark:bg-gray-700 text-white text-sm font-bold shadow hover:bg-gray-600 dark:hover:bg-gray-800 transition w-full sm:w-auto"
-                onClick={() => setShowPassword(v => !v)}
-              >
-                <KeyRound className="w-4 h-4" /> Passwort ändern
-              </button>
-              {showPassword && (
-                <div className="mt-4 border-t border-blue-100 dark:border-gray-700 pt-4">
-                  <input
-                    className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 mb-2 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    type="password"
-                    value={password1}
-                    onChange={e => setPassword1(e.target.value)}
-                    placeholder="Neues Passwort"
-                    autoFocus
-                  />
-                  <input
-                    className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 mb-2 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    type="password"
-                    value={password2}
-                    onChange={e => setPassword2(e.target.value)}
-                    placeholder="Passwort bestätigen"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full"
-                      onClick={handlePasswordChange}
-                      disabled={pwLoading}
-                      type="button"
-                    >
-                      {pwLoading ? "Speichert..." : "Passwort speichern"}
-                    </button>
-                    <button
-                      className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full"
-                      onClick={() => { setShowPassword(false); setPassword1(''); setPassword2(''); }}
-                      type="button"
-                    >
-                      Abbrechen
-                    </button>
-                  </div>
+        {profileOpen && !editingProfile && (
+          <div className="space-y-3 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
+              <div className="mb-1"><span className="font-semibold">Vorname:</span> <span>{profile?.first_name}</span></div>
+              <div><span className="font-semibold">Nachname:</span> <span>{profile?.last_name}</span></div>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
+              <div><span className="font-semibold">Standort:</span> <span>{profile?.location}</span></div>
+            </div>
+            <button
+              className="mt-4 flex items-center justify-center gap-2 px-5 py-1.5 rounded-full bg-[#0056b3] dark:bg-blue-600 text-white text-sm font-bold shadow hover:bg-blue-800 dark:hover:bg-blue-700 transition w-full sm:w-auto"
+              onClick={() => setEditingProfile(true)}
+            ><Edit className="w-4 h-4" /> Bearbeiten</button>
+            <button
+              className="mt-2 flex items-center justify-center gap-2 px-5 py-1.5 rounded-full bg-gray-400 dark:bg-gray-700 text-white text-sm font-bold shadow hover:bg-gray-600 dark:hover:bg-gray-800 transition w-full sm:w-auto"
+              onClick={() => setShowPassword(v => !v)}
+            ><KeyRound className="w-4 h-4" /> Passwort ändern</button>
+            {showPassword && (
+              <div className="mt-4 border-t border-blue-100 dark:border-gray-700 pt-4">
+                <input
+                  className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 mb-2 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                  type="password"
+                  value={password1}
+                  onChange={e => setPassword1(e.target.value)}
+                  placeholder="Neues Passwort"
+                  autoFocus
+                />
+                <input
+                  className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 mb-2 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                  type="password"
+                  value={password2}
+                  onChange={e => setPassword2(e.target.value)}
+                  placeholder="Passwort bestätigen"
+                />
+                <div className="flex gap-2">
+                  <button
+                    className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full"
+                    onClick={handlePasswordChange}
+                    disabled={pwLoading}
+                    type="button"
+                  >
+                    {pwLoading ? "Speichert..." : "Passwort speichern"}
+                  </button>
+                  <button
+                    className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full"
+                    onClick={() => { setShowPassword(false); setPassword1(''); setPassword2(''); }}
+                    type="button"
+                  >
+                    Abbrechen
+                  </button>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3 animate-fade-in">
-              <input
-                className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                value={profileEdit.first_name || ''}
-                onChange={e => setProfileEdit(p => ({ ...p, first_name: e.target.value }))}
-                placeholder="Vorname"
-              />
-              <input
-                className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                value={profileEdit.last_name || ''}
-                onChange={e => setProfileEdit(p => ({ ...p, last_name: e.target.value }))}
-                placeholder="Nachname"
-              />
-              <select
-                className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                value={profileEdit.location || ''}
-                onChange={e => setProfileEdit(p => ({ ...p, location: e.target.value }))}
-                required
-              >
-                <option value="">Standort wählen…</option>
-                <option value="Nordpol">Nordpol</option>
-                <option value="Südpol">Südpol</option>
-              </select>
-              <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                <button
-                  className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full sm:w-auto"
-                  onClick={async () => {
-                    setSavingProfile(true);
-                    await supabase.from('profiles').update({
-                      first_name: profileEdit.first_name,
-                      last_name: profileEdit.last_name,
-                      location: profileEdit.location,
-                    }).eq('id', profile!.id);
-                    const { data: updatedProfile } = await supabase
-                      .from('profiles')
-                      .select('*')
-                      .eq('id', profile!.id)
-                      .single();
-                    setProfile(updatedProfile);
-                    setProfileEdit(updatedProfile);
-                    setEditingProfile(false);
-                    setSavingProfile(false);
-                    setProfileSavedSnackbar(true);
-                    setTimeout(() => setProfileSavedSnackbar(false), 2200);
-                  }}
-                >Speichern</button>
-                <button className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full sm:w-auto" onClick={() => setEditingProfile(false)}>Abbrechen</button>
               </div>
+            )}
+          </div>
+        )}
+        {profileOpen && editingProfile && (
+          <div className="flex flex-col gap-3 animate-fade-in">
+            <input
+              className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+              value={profileEdit.first_name || ''}
+              onChange={e => setProfileEdit(p => ({ ...p, first_name: e.target.value }))}
+              placeholder="Vorname"
+            />
+            <input
+              className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+              value={profileEdit.last_name || ''}
+              onChange={e => setProfileEdit(p => ({ ...p, last_name: e.target.value }))}
+              placeholder="Nachname"
+            />
+            <select
+              className="border border-blue-200 dark:border-gray-700 px-3 py-1.5 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+              value={profileEdit.location || ''}
+              onChange={e => setProfileEdit(p => ({ ...p, location: e.target.value }))}
+              required
+            >
+              <option value="">Standort wählen…</option>
+              <option value="Nordpol">Nordpol</option>
+              <option value="Südpol">Südpol</option>
+            </select>
+            <div className="flex flex-col sm:flex-row gap-3 mt-2">
+              <button
+                className="px-5 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-800 w-full sm:w-auto"
+                onClick={async () => {
+                  setSavingProfile(true);
+                  await supabase.from('profiles').update({
+                    first_name: profileEdit.first_name,
+                    last_name: profileEdit.last_name,
+                    location: profileEdit.location,
+                  }).eq('id', profile!.id);
+                  const { data: updatedProfile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', profile!.id)
+                    .single();
+                  setProfile(updatedProfile);
+                  setProfileEdit(updatedProfile);
+                  setEditingProfile(false);
+                  setSavingProfile(false);
+                  setProfileSavedSnackbar(true);
+                  setTimeout(() => setProfileSavedSnackbar(false), 2200);
+                }}
+              >Speichern</button>
+              <button className="px-5 py-1.5 text-red-600 rounded-full border border-red-200 dark:border-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900 w-full sm:w-auto" onClick={() => setEditingProfile(false)}>Abbrechen</button>
             </div>
-          )
+          </div>
         )}
       </div>
-      {/* >>>>>>  LEGENDE  <<<<<< */}
+
+      {/* LEGENDE */}
       <div className="flex items-center gap-5 mb-2 text-sm">
         <span className="flex items-center gap-1">
           <span role="img" aria-label="Vegetarisch" className="text-lg">🥦</span>
@@ -476,7 +549,6 @@ export default function Dashboard() {
           Vegan
         </span>
       </div>
-      {/* <<<<<<<<<<<<<<<< */}
 
       {/* Menü + Bestellungen */}
       <div className="space-y-6">
@@ -511,7 +583,6 @@ export default function Dashboard() {
                         ${isDeadline ? 'opacity-70' : 'hover:bg-blue-50 dark:hover:bg-gray-700'}
                       `}
                     >
-                      {/* Custom Radio Button */}
                       <span
                         className={`
                           relative flex items-center justify-center
@@ -581,7 +652,7 @@ export default function Dashboard() {
                         .from('orders')
                         .select('id, week_menu_id')
                         .eq('user_id', user.id);
-                      setOrders((orderData ?? []) as Order[]);
+                      setOrders(orderData ?? []);
                     }}
                   >Bestellung stornieren</button>
                 )}
