@@ -132,35 +132,50 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
   }
 
   return (
-    <div className="w-full">
+    <div className="space-y-4 w-full max-w-3xl mx-auto overflow-x-auto">
       {/* Buttons on a single line */}
-      <div className="flex items-center space-x-2 mb-3">
+      <div className="flex space-x-2 mb-3">
         <h2 className="text-lg font-bold text-[#0056b3] dark:text-blue-200">
           Bestellungen Übersicht <span className="font-normal text-gray-500 dark:text-gray-400">(KW {isoWeek}/{isoYear})</span>
         </h2>
+        </div>
+          {/* Fieldset direkt unter der Überschrift */}
+  <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-4 mb-6">
+    <legend className="px-2 text-xs font-semibold text-blue-600 dark:text-blue-300">
+      Export-Optionen
+    </legend>
 
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Label + Select */}
+      <div className="flex items-center gap-2">
+        <label
+          htmlFor="daySelect"
+          className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
+        >
+          Wochentag:
+        </label>
+        <select
+          id="daySelect"
+          value={selectedDay}
+          onChange={(e) => setSelectedDay(Number(e.target.value))}
+          className="text-sm px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow"
+        >
+          {Object.entries(WEEKDAYS).map(([val, label]) => (
+            <option key={val} value={val}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Buttons */}
+      <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={exportCSV}
           className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs"
         >
-          Exportieren (CSV)
+          Export - CSV
         </button>
-
-        <div className="flex items-center gap-2">
-          <label htmlFor="daySelect" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Wochentag:
-          </label>
-          <select
-            id="daySelect"
-            value={selectedDay}
-            onChange={(e) => setSelectedDay(Number(e.target.value))}
-            className="text-sm px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow"
-          >
-            {Object.entries(WEEKDAYS).map(([val, label]) => (
-              <option key={val} value={val}>{label}</option>
-            ))}
-          </select>
-        </div>
 
         <button
           onClick={handlePdfExport}
@@ -174,10 +189,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
         >
           {loadingPdf ? (
             <>
-              <svg
-                className="animate-spin h-4 w-4"
-                viewBox="0 0 24 24"
-              >
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                 <circle
                   className="opacity-25"
                   cx="12"
@@ -196,11 +208,12 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
               Lädt…
             </>
           ) : (
-            'PDF Export (Querformat)'
+            'Export - Aushänge'
           )}
         </button>
       </div>
-
+    </div>
+  </fieldset>
       {/* ─── Übersicht Bestellmengen ───────────────────────────────────────────────── */}
       {!loading && (
         <div className="mb-4 px-4 py-3 bg-blue-50 dark:bg-gray-900 rounded-xl shadow-sm border border-blue-100 dark:border-gray-700">

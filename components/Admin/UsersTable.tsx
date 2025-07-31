@@ -128,12 +128,15 @@ export default function UsersTable() {
     <div>
       <h2 className="text-lg font-bold mb-1 text-[#0056b3] dark:text-blue-200">Userverwaltung</h2>
       <div className="flex flex-col md:flex-row gap-1 md:gap-2 mb-2">
+        <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-4 mb-6">
+    
         <button
           onClick={() => { setEditForm({ location: LOCATION_OPTIONS[0] }); setShowCreate(true); }}
           className="bg-[#0056b3] hover:bg-blue-800 text-white font-semibold px-2 py-1 rounded-full shadow text-xs w-full md:w-auto"
         >
-          + User
+          neuen User anlegen
         </button>
+          </fieldset>
         <input
           type="text"
           placeholder="Suche…"
