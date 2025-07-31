@@ -36,7 +36,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name="description" content="CHECKito Lunch – Dein Tool für Essensbestellungen und Menüverwaltung." />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <div className="min-h-screen bg-white text-gray-900 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
+      <div className="min-h-screen bg-white text-gray-900 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
         {!hideHeader && <HeaderLogo />}
         <Component {...pageProps} />
       </div>

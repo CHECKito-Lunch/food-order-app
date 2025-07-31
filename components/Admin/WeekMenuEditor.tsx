@@ -513,12 +513,16 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 
   // --- RENDER ---
   return (
-    <div className="space-y-6">
+    
+    <div className="space-y-4 w-full max-w-3xl mx-auto overflow-x-auto">
       <h2 className="text-lg font-bold mb-1 text-[#0056b3] dark:text-blue-200">
         Menü KW {isoWeek}/{isoYear}
       </h2>
-
-      {/* Reload & Actions */}
+           {/* Reload & Actions */}
+      <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-3 mb-3">
+        <legend className="px-2 text-xs font-semibold text-blue-600 dark:text-blue-300">
+          Wochenoptionen
+        </legend>
       <div className="flex flex-wrap gap-2 items-center mb-3">
         <button
           onClick={reloadMenus}
@@ -538,11 +542,8 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
         >
           ⏰ Fristen setzen
         </button>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          Letztes Laden: {reloadTime}
-        </span>
-      </div>
-
+          </div>
+</fieldset>
       {/* Presets */}
       <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-3 mb-3">
         <legend className="px-2 text-xs font-semibold text-blue-600 dark:text-blue-300">
@@ -692,7 +693,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       className="w-4 h-4 accent-green-500"
       title="Vegetarisch"
     />
-    🥦 Veggie
+    🥦 
   
   </label>
   <label className="flex items-center gap-1 text-xs text-teal-700">
@@ -703,7 +704,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       className="w-4 h-4 accent-teal-500"
       title="Vegan"
     />
-    🌱 Vegan
+    🌱 
   </label>
 <label className="flex items-center text-xs">
                   <input
