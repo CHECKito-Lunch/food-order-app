@@ -23,7 +23,7 @@ type Menu = {
   order_deadline: string;
   is_veggie?: boolean;
   is_vegan?: boolean;
-  is_fridge?: boolean;
+  in_fridge?: boolean;
 };
 
 type MenuPerDay = {
@@ -106,7 +106,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
           order_deadline: m.order_deadline ? m.order_deadline.slice(0, 16) : '',
           is_veggie: m.is_veggie,
           is_vegan: m.is_vegan,
-          is_fridge: m.is_fridge
+          in_fridge: m.in_fridge
         });
       }
     });
@@ -149,7 +149,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
           order_deadline: '',
           is_veggie: false,
           is_vegan: false,
-          is_fridge: false
+          in_fridge: false
         }
       ]
     }));
@@ -189,7 +189,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
       [pasteTarget]: prev[copiedDay].map(({ id, ...m }) => ({
         ...m,
         order_deadline: '', // Deadline wird geleert!
-        is_fridge: m.is_fridge,
+        in_fridge: m.in_fridge,
         is_veggie: m.is_veggie,
         is_vegan: m.is_vegan
       }))
@@ -265,7 +265,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
         iso_week: isoWeek,
         is_veggie: !!m.is_veggie,
         is_vegan:  !!m.is_vegan,
-        is_fridge: !!m.is_fridge,
+        in_fridge: !!m.in_fridge,
         ...(typeof m.id === "number" ? { id: m.id } : {})
       }))
     );
@@ -431,7 +431,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
         m.order_deadline,
         m.is_veggie?'ja':'nein',
         m.is_vegan?'ja':'nein',
-        m.is_fridge?'ja':'nein'
+        m.in_fridge?'ja':'nein'
       ]);
     });
     const csv = [header, ...rows].map(r => r.join(";")).join("\n");
@@ -708,9 +708,9 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
 <label className="flex items-center text-xs">
                   <input
                     type="checkbox"
-                    checked={!!m.is_fridge}
+                    checked={!!m.in_fridge}
                     onChange={e =>
-                      handleMenuChange(Number(d), i, { is_fridge: e.target.checked })
+                      handleMenuChange(Number(d), i, { in_fridge: e.target.checked })
                     }
                     className="w-4 h-4 accent-red-500"
                   />
