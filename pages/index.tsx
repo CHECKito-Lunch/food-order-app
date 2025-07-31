@@ -348,8 +348,8 @@ export default function Dashboard() {
         ×
       </button>
       <span className="text-center">
-        <strong>Achtung!</strong> Für <strong>{tagName}</strong> den {datum} läuft die Bestellfrist in 
-        {diffHours} h {diffMinutes} m aus!
+        <strong>Achtung!</strong> für <strong>{tagName}</strong> den {datum}
+        läuft die Bestellfrist in {diffHours} h {diffMinutes} m aus!
       </span>
     </div>
   );
