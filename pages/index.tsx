@@ -312,48 +312,59 @@ export default function Dashboard() {
   return (
     <div className="max-w-3xl mx-auto px-3 py-6 md:px-6 md:py-12 space-y-10 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
 
-           {/* SMOOTH DEADLINE BANNER */}
-{showBanner && deadlineReminders.length > 0 && (() => {
-  const next = deadlineReminders[0];
-  const diffHours = dayjs(next.order_deadline).diff(dayjs(), 'hour');
-  const diffMinutes = dayjs(next.order_deadline)
-    .diff(dayjs().add(diffHours, 'hour'), 'minute');
-  const tagName = WEEKDAYS[next.day_of_week - 1];
-  const datum = dayjs(next.order_deadline).format('DD.MM.YYYY');
+           {/* Roter, weicher Banner mit Close- und Scroll-Button */}
+    {showBanner && deadlineReminders.length > 0 && (() => {
+      const next = deadlineReminders[0];
+      const diffHours = dayjs(next.order_deadline).diff(dayjs(), 'hour');
+      const diffMinutes = dayjs(next.order_deadline).diff(dayjs().add(diffHours, 'hour'), 'minute');
+      const tagName = WEEKDAYS[next.day_of_week - 1];
+      const datum = dayjs(next.order_deadline).format('DD.MM.YYYY');
+      const targetId = `day-${next.day_of_week}`;
 
-  return (
-    <div
-      className="
-        sticky top-[env(safe-area-inset-top)]
-        mx-4
-        bg-red-100 text-red-800
-        rounded-lg shadow-md
-        px-4 py-3
-        text-sm leading-snug
-        relative
-        z-50
-        flex items-center justify-center
-      "
-    >
-      <button
-        onClick={() => setShowBanner(false)}
-        className="
-          absolute top-1 right-2
-          text-red-800 font-bold
-          leading-none
-          focus:outline-none
-        "
-        aria-label="Banner schließen"
-      >
-        ×
-      </button>
-      <span className="text-center">
-        <strong>Achtung!</strong> für <strong>{tagName}</strong> den {datum}
-        läuft die Bestellfrist in {diffHours} h {diffMinutes} m aus!
-      </span>
-    </div>
-  );
-})()}
+      return (
+        <div
+          className="
+            sticky top-[env(safe-area-inset-top)]
+            mx-4
+            bg-red-100 text-red-800
+            rounded-lg shadow-md
+            px-4 py-3
+            text-sm leading-snug
+            relative z-50
+            flex items-center justify-between space-x-3
+          "
+        >
+          {/* Close */}
+          <button
+            onClick={() => setShowBanner(false)}
+            className="absolute top-1 right-2 text-red-800 font-bold leading-none focus:outline-none"
+            aria-label="Banner schließen"
+          >×</button>
+
+          {/* Text */}
+          <span className="flex-1 text-center">
+            <strong>Achtung!</strong> für <strong>{tagName}</strong> den {datum} läuft die Bestellfrist in {diffHours} h {diffMinutes} m aus!
+          </span>
+
+          {/* Scroll */}
+          <button
+            onClick={() => {
+              document
+                .getElementById(targetId)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className="
+              bg-red-200 hover:bg-red-300
+              text-red-800 font-medium
+              px-2 py-1 rounded
+              shadow-sm text-xs
+              focus:outline-none
+            "
+          >Zum Tag</button>
+        </div>
+      );
+    })()}
+
 
       {/* Loader während Bestellung */}
       {savingOrder && (
@@ -566,7 +577,7 @@ export default function Dashboard() {
           const tagDatum = dayjs().year(selectedYear).week(selectedWeek).day(day);
 
           return (
-            <div key={day} className="border border-blue-100 dark:border-gray-700 rounded-2xl shadow bg-white dark:bg-gray-800 p-4 md:p-6">
+            <div id={`day-${day}`} key={day} className="border border-blue-100 dark:border-gray-700 rounded-2xl shadow bg-white dark:bg-gray-800 p-4 md:p-6">
               <div className="text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-3 flex flex-wrap items-center gap-3">
                 {dayName}
                 <span className="text-xs md:text-base text-gray-500 dark:text-gray-400 font-normal">
