@@ -126,36 +126,37 @@ export default function UsersTable() {
 
   return (
     <div>
-      <h2 className="text-lg font-bold mb-1 text-[#0056b3] dark:text-blue-200">Userverwaltung</h2>
-      <div className="flex flex-col md:flex-row gap-1 md:gap-2 mb-2">
-        <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-4 mb-6">
-    
-        <button
-          onClick={() => { setEditForm({ location: LOCATION_OPTIONS[0] }); setShowCreate(true); }}
-          className="bg-[#0056b3] hover:bg-blue-800 text-white font-semibold px-2 py-1 rounded-full shadow text-xs w-full md:w-auto"
-        >
-          neuen User anlegen
-        </button>
-          </fieldset>
+      <h2 className="flex justify-between items-center w-full">
+  <span className="text-lg font-bold mb-3 text-[#0056b3] dark:text-blue-200">
+    Userverwaltung
+  </span>
+  <button
+    className="bg-[#0056b3] hover:bg-blue-800 text-white font-semibold px-2 py-1 rounded-xl shadow text-xs"
+  >
+    neuen User anlegen (nur Mailadresse und Passwort, den Rest freilassen)
+  </button>
+</h2>
+       <div className="flex flex-col rounded-xl space-y-2 mb-3">
+        
         <input
           type="text"
-          placeholder="Suche…"
+          placeholder="... hier dein Suchtext"
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="
             border border-blue-200 dark:border-gray-700
-            rounded px-2 py-1.5
+            rounded-xl
             bg-white dark:bg-gray-900
             text-gray-900 dark:text-gray-100
             placeholder-gray-400 dark:placeholder-gray-500
             focus:outline-none focus:ring-2 focus:ring-blue-400
-            text-xs w-full
+            text-xs text-center w-full leading-8
             transition
           "
         />
       </div>
       <div className="overflow-x-auto rounded-2xl border border-blue-100 dark:border-gray-700 shadow bg-white dark:bg-gray-800">
-        <div className="flex flex-col md:flex-row gap-1 md:gap-2 mb-2"></div>
+  
         <table className="min-w-full divide-y divide-blue-100 dark:divide-gray-700">
           <thead>
             <tr className="bg-blue-50 dark:bg-gray-900">
