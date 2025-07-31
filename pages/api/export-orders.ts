@@ -118,15 +118,15 @@ export default async function handler(
 
     // Anzahl
     doc.font('Helvetica-Bold').fontSize(14).fillColor('black')
-       .text(`${names.length}×`, x + 360, 30, { width: 40, align: 'right' });
+       .text(`${names.length}×`, x + 360, 20, { width: 40, align: 'right' });
 
     // Badge
     doc.image(badgePath, x + 20, 20, { width: 80 });
 
     // Titel
     doc.font('Helvetica-Bold').fontSize(16).fillColor('black')
-       .text(`Menü ${menu.menu_number} – ${menu.description}`, x + 20, 160, {
-         width: 380, align: 'center'
+       .text(`Menü ${menu.menu_number} – ${menu.description}`, x + 20, 20, {
+         width: 240, align: 'center'
        });
 
 // ─── Querstrich unter der Überschrift
