@@ -313,18 +313,18 @@ export default function Dashboard() {
     <div className="max-w-3xl mx-auto px-3 py-6 md:px-6 md:py-12 space-y-10 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
 
            {/* Roter, weicher Banner mit Close- und Scroll-Button */}
-    {showBanner && deadlineReminders.length > 0 && (() => {
-      const next = deadlineReminders[0];
-      const diffHours = dayjs(next.order_deadline).diff(dayjs(), 'hour');
-      const diffMinutes = dayjs(next.order_deadline).diff(dayjs().add(diffHours, 'hour'), 'minute');
-      const tagName = WEEKDAYS[next.day_of_week - 1];
-      const datum = dayjs(next.order_deadline).format('DD.MM.YYYY');
-      const targetId = `day-${next.day_of_week}`;
-      const menuDate = dayjs()
+{showBanner && deadlineReminders.length > 0 && (() => {
+  const next = deadlineReminders[0];
+  const diffHours   = dayjs(next.order_deadline).diff(dayjs(), 'hour');
+  const diffMinutes = dayjs(next.order_deadline)
+                         .diff(dayjs().add(diffHours, 'hour'), 'minute');
+  const tagName  = WEEKDAYS[next.day_of_week - 1];
+  const menuDate = dayjs()
     .year(selectedYear)
     .week(selectedWeek)
     .day(next.day_of_week)
-    .format('DD.MM.YY');
+    .format('DD.MM.YYYY');
+  const targetId = `day-${next.day_of_week}`;
 
 
       return (
