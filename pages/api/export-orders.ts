@@ -129,6 +129,17 @@ export default async function handler(
          width: 380, align: 'center'
        });
 
+// ─── Querstrich unter der Überschrift
+    const separatorY = 200;
+    doc.save();
+    doc.moveTo(x + 20, separatorY)
+       .lineTo(x + 20 + 390, separatorY)
+       .lineWidth(1)
+       .strokeColor('#000000ff')
+       .stroke();
+    doc.restore();
+
+
     // Namen
   const startY = 320;
   const lineHeight = 18;
