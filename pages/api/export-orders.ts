@@ -121,16 +121,16 @@ export default async function handler(
        .text(`${names.length}×`, x + 360, 20, { width: 40, align: 'right' });
 
     // Badge
-    doc.image(badgePath, x + 20, 20, { width: 80 });
+    doc.image(badgePath, x + 1, 20, { width: 80 });
 
     // Titel
     doc.font('Helvetica-Bold').fontSize(16).fillColor('black')
-       .text(`Menü ${menu.menu_number} – ${menu.description}`, x + 20, 20, {
+       .text(`Menü ${menu.menu_number} – ${menu.description}`, x + 90, 20, {
          width: 240, align: 'center'
        });
 
 // ─── Querstrich unter der Überschrift
-    const separatorY = 200;
+    const separatorY = 160;
     doc.save();
     doc.moveTo(x + 20, separatorY)
        .lineTo(x + 20 + 390, separatorY)
