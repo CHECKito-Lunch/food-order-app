@@ -313,42 +313,47 @@ export default function Dashboard() {
     <div className="max-w-3xl mx-auto px-3 py-6 md:px-6 md:py-12 space-y-10 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
 
            {/* SMOOTH DEADLINE BANNER */}
-      {deadlineReminders.length > 0 && showBanner && (() => {
-        const next = deadlineReminders[0];
-        const diffHours = dayjs(next.order_deadline).diff(dayjs(), 'hour');
-        const diffMinutes = dayjs(next.order_deadline)
-          .diff(dayjs().add(diffHours, 'hour'), 'minute');
-        const tagName = WEEKDAYS[next.day_of_week - 1];
-        const datum = dayjs(next.order_deadline).format('DD.MM.YYYY');
-        const handleClose = () => {
-          setShowBanner(false);
-          setTimeout(() => setDeadlineReminders([]), 500);
-        };
-        return (
-          <div
-            className={`
-              relative
-              bg-red-200 text-gray-800
-              text-center px-6 py-4
-              rounded-lg shadow-lg mt-4
-              transition-opacity duration-500 ease-in-out
-              ${showBanner ? 'opacity-100' : 'opacity-0'}
-            `}
-          >
-            <button
-              onClick={handleClose}
-              className="absolute top-2 right-3 text-gray-800 text-2xl font-bold hover:scale-110 transition-transform"
-              aria-label="Schließen"
-            >
-              ×
-            </button>
-            <p className="font-medium">
-              Achtung! Für <strong>{tagName}</strong> den <strong>{datum}</strong> läuft die Bestellfrist
-              in <strong>{diffHours}h {diffMinutes}m</strong> aus!
-            </p>
-          </div>
-        );
-      })()}
+{showBanner && deadlineReminders.length > 0 && (() => {
+  const next = deadlineReminders[0];
+  const diffHours = dayjs(next.order_deadline).diff(dayjs(), 'hour');
+  const diffMinutes = dayjs(next.order_deadline)
+    .diff(dayjs().add(diffHours, 'hour'), 'minute');
+  const tagName = WEEKDAYS[next.day_of_week - 1];
+  const datum = dayjs(next.order_deadline).format('DD.MM.YYYY');
+
+  return (
+    <div
+      className="
+        sticky top-[env(safe-area-inset-top)]
+        mx-4
+        bg-red-100 text-red-800
+        rounded-lg shadow-md
+        px-4 py-3
+        text-sm leading-snug
+        relative
+        z-50
+        flex items-center justify-center
+      "
+    >
+      <button
+        onClick={() => setShowBanner(false)}
+        className="
+          absolute top-1 right-2
+          text-red-800 font-bold
+          leading-none
+          focus:outline-none
+        "
+        aria-label="Banner schließen"
+      >
+        ×
+      </button>
+      <span className="text-center">
+        <strong>Achtung!</strong> Für <strong>{tagName}</strong> den {datum} läuft die Bestellfrist in 
+        {diffHours} h {diffMinutes} m aus!
+      </span>
+    </div>
+  );
+})()}
 
       {/* Loader während Bestellung */}
       {savingOrder && (
