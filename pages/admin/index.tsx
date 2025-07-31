@@ -41,7 +41,7 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-blue-50 dark:bg-gray-900 flex flex-col items-center">
-      <div className="w-full max-w-7xl mx-auto mt-6 px-1 md:px-2">
+      <div className="w-full max-w-screen-2xl mx-auto mt-6 px-4 md:px-6">
         {/* Header */}
         <div className="rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 mb-8 p-3 md:p-4 bg-white dark:bg-gray-800 flex flex-col gap-4">
           <h1 className="text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-2 tracking-tight">
