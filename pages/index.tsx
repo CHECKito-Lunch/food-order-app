@@ -328,7 +328,7 @@ export default function Dashboard() {
             mx-4
             bg-red-100 text-red-800
             rounded-lg shadow-md
-            px-4 py-3
+            px-4 py-3 pr-12
             text-sm leading-snug
             relative z-50
             flex items-center justify-between space-x-3
@@ -337,7 +337,7 @@ export default function Dashboard() {
           {/* Close */}
           <button
             onClick={() => setShowBanner(false)}
-            className="absolute top-1 right-2 text-red-800 font-bold leading-none focus:outline-none"
+            className="absolute top-1 right-3 text-red-800 font-bold leading-none focus:outline-none"
             aria-label="Banner schließen"
           >×</button>
 
