@@ -132,7 +132,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number, iso
   }
 
   return (
-    <div className="space-y-4 w-full max-w-3xl mx-auto overflow-x-auto">
+    <div className="space-y-4 w-full justify-between overflow-x-auto">
       {/* Buttons on a single line */}
       <div className="flex space-x-2 mb-3">
         <h2 className="text-lg font-bold text-[#0056b3] dark:text-blue-200">

@@ -514,7 +514,7 @@ export default function WeekMenuEditor({ isoYear, isoWeek }: { isoYear: number; 
   // --- RENDER ---
   return (
     
-    <div className="space-y-4 w-full max-w-3xl mx-auto overflow-x-auto">
+    <div className="space-y-4 w-full justify-between overflow-x-auto">
       <h2 className="text-lg font-bold mb-1 text-[#0056b3] dark:text-blue-200">
         Menü KW {isoWeek}/{isoYear}
       </h2>
