@@ -125,23 +125,23 @@ export default async function handler(
 
     // Titel
     doc.font('Helvetica-Bold').fontSize(16).fillColor('black')
-       .text(`Menü ${menu.menu_number} – ${menu.description}`, x + 90, 20, {
-         width: 240, align: 'center'
+       .text(`Menü ${menu.menu_number} – ${menu.description}`, x + 85, 20, {
+         width: 270, align: 'center'
        });
 
 // ─── Querstrich unter der Überschrift
-    const separatorY = 160;
+    const separatorY = 185;
     doc.save();
     doc.moveTo(x + 20, separatorY)
-       .lineTo(x + 20 + 390, separatorY)
+       .lineTo(x + 20 + 380, separatorY)
        .lineWidth(1)
-       .strokeColor('#000000ff')
+       .strokeColor('#022D94')
        .stroke();
     doc.restore();
 
 
     // Namen
-  const startY = 320;
+  const startY = 195;
   const lineHeight = 18;
   const colGap = 10;
   const totalWidth = 380;
@@ -158,7 +158,7 @@ export default async function handler(
       const ys = startY + row * lineHeight;
       doc.text(names[idx], xs, ys, {
         width: colWidth,
-        align: 'left'
+        align: 'center'
       });
     }
   }
