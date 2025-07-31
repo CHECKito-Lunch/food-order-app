@@ -155,6 +155,7 @@ export default function UsersTable() {
         />
       </div>
       <div className="overflow-x-auto rounded-2xl border border-blue-100 dark:border-gray-700 shadow bg-white dark:bg-gray-800">
+        <div className="flex flex-col md:flex-row gap-1 md:gap-2 mb-2"></div>
         <table className="min-w-full divide-y divide-blue-100 dark:divide-gray-700">
           <thead>
             <tr className="bg-blue-50 dark:bg-gray-900">
