@@ -319,7 +319,11 @@ export default function Dashboard() {
   const diffMinutes = dayjs(next.order_deadline)
                          .diff(dayjs().add(diffHours, 'hour'), 'minute');
   const tagName  = WEEKDAYS[next.day_of_week - 1];
-  const tagDatum = dayjs().year(selectedYear).week(selectedWeek).day(day);
+  const tagDatum = dayjs()
+    .year(selectedYear)
+    .week(selectedWeek)
+    .day(next.day_of_week);
+  const menuDate = tagDatum.format('DD.MM.YYYY');
   const targetId = `day-${next.day_of_week}`;
 
 
@@ -345,7 +349,7 @@ export default function Dashboard() {
 
           {/* Text */}
           <span className="flex-1 text-center">
-            <strong>Achtung!</strong> für <strong>{tagName}</strong> den {tagDatum} läuft die Bestellfrist in {diffHours} Stunden {diffMinutes} Minuten aus!
+            <strong>Achtung!</strong> für <strong>{tagName}</strong> den {menuDate} läuft die Bestellfrist in {diffHours} Stunden {diffMinutes} Minuten aus!
           </span>
 
           {/* Scroll */}
