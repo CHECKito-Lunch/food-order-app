@@ -130,16 +130,32 @@ export default async function handler(
        });
 
     // Namen
-    doc.font('Helvetica').fontSize(12);
-    let yPos = 220;
-    for (const n of names) {
-      doc.text(n, x + 20, yPos, { width: 380, align: 'center' });
-      yPos += 18;
+  const startY = 320;
+  const lineHeight = 18;
+  const colGap = 10;
+  const totalWidth = 380;
+  const colCount = 2;
+  const colWidth = (totalWidth - colGap) / colCount;
+  const perCol = Math.ceil(names.length / colCount);
+
+  doc.font('Helvetica').fontSize(12);
+  for (let col = 0; col < colCount; col++) {
+    const xs = x + 20 + col * (colWidth + colGap);
+    for (let row = 0; row < perCol; row++) {
+      const idx = col * perCol + row;
+      if (idx >= names.length) break;
+      const ys = startY + row * lineHeight;
+      doc.text(names[idx], xs, ys, {
+        width: colWidth,
+        align: 'left'
+      });
     }
+  }
+
 
     // Kühlschrank-Hinweis
     if (menu.in_fridge) {
-      doc.font('Helvetica-Bold').fontSize(12).fillColor('red')
+      doc.font('Helvetica-Bold').fontSize(16).fillColor('red')
          .text('befindet sich im Kühlschrank', x + 20, 560, {
            width: 380, align: 'center'
          });
