@@ -222,7 +222,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
               disabled={loadingPdf}
               className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs"
             >{loadingPdf ? 'Lädt…' : 'Export - Aushänge'}</button>
-            <button onClick={handleDeleteAll} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs">Alle löschen</button>
+            <button onClick={handleDeleteAll} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs">Alle Bestellungen löschen</button>
           </div>
         </div>
       </fieldset>
