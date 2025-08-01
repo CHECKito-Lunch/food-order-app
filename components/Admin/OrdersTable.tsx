@@ -92,6 +92,21 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
 
   useEffect(() => { fetchData(); }, [isoYear, isoWeek, selectedDay]);
 
+// Gibt das Datum für ISO-Woche `w`, ISO-Jahr `y` und Wochentag `day` (1=Mo … 7=So) zurück
+function getDateOfISOWeek(w: number, y: number, day: number) {
+  // Erster Tag der ISO-Woche 1
+  const simple = new Date(y, 0, 1 + (w - 1) * 7);
+  const dow = simple.getDay() || 7;       // Sonntag als 7
+  const isoWeekStart = new Date(simple);
+  if (dow <= 4) {
+    isoWeekStart.setDate(simple.getDate() - (dow - 1));
+  } else {
+    isoWeekStart.setDate(simple.getDate() + (8 - dow));
+  }
+  // jetzt den gewünschten Wochentag hinzufügen
+  isoWeekStart.setDate(isoWeekStart.getDate() + (day - 1));
+  return isoWeekStart;
+}
   // Export CSV
   function exportCSV() { /* unchanged */ }
   async function handlePdfExport() { /* unchanged */ }
@@ -138,6 +153,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
   });
 
   // Build summary counts
+  const selectedDate = getDateOfISOWeek(isoWeek, isoYear, selectedDay);
   const summary = filteredOrders.reduce<Record<string, { count: number; description: string }>>((acc, o) => {
     const key = o.menu_number.toString();
     if (!acc[key]) acc[key] = { count: 1, description: o.description };
@@ -149,7 +165,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
     <div className="space-y-4 w-full overflow-x-auto">
       {/* Header & Search */}
       <div className="flex flex-col sm:flex-row sm:justify-between mb-4">
-        <h2 className="text-lg font-bold text-[#0056b3]">{`Bestellungen Übersicht (KW ${isoWeek}/${isoYear})`}</h2>
+        <h2 className="text-lg font-bold text-[#0056b3]">{`Bestellübersicht (KW ${isoWeek}/${isoYear})`}</h2>
         <input
           type="text"
           placeholder="Suchen nach Name oder Standort..."
@@ -161,7 +177,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
 
      {/* Bestellung nachtragen */}
       <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-4 mb-6 bg-white dark:bg-gray-900">
-        <legend className="px-2 text-xs font-semibold text-[#0056b3] dark:text-blue-300">Bestellung nachtragen</legend>
+        <legend className="px-2 text-xs font-semibold text-[#0056b3] dark:text-blue-300">Bestellung nachtragen für {selectedDate.toLocaleDateString('de-DE')}</legend>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
           <input
             type="text"
@@ -231,7 +247,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
 
       {/* Summary for selected day */}
       <div className="mb-4 px-4 py-3 bg-blue-50 dark:bg-gray-900 rounded-xl shadow-sm border border-blue-100 dark:border-gray-700">
-        <h3 className="font-semibold text-sm text-[#0056b3] dark:text-blue-200 mb-1">Übersicht Bestellmengen für {WEEKDAYS[selectedDay]}:</h3>
+        <h3 className="font-semibold text-sm text-[#0056b3] dark:text-blue-200 mb-1">Übersicht Bestellmengen für {selectedDate.toLocaleDateString('de-DE')}:</h3>
         <ul className="text-xs text-gray-800 dark:text-gray-200 list-disc pl-5 space-y-1">
           {Object.entries(summary).map(([menuNr, { count, description }]) => (
             <li key={menuNr}><strong>{count}×</strong> – {description}</li>
