@@ -98,6 +98,29 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
   async function handleRelease(orderId: number) { /* unchanged */ }
   async function handleUndo(orderId: number) { /* unchanged */ }
 
+// Delete single order
+  async function handleDelete(orderId: number) {
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', orderId);
+    if (error) console.error('Error deleting order:', error);
+    else fetchData();
+  }
+
+  // Delete all for selected day
+  async function handleDeleteAll() {
+    const ids = orders
+      .filter(o => Number(o.day_of_week) === selectedDay)
+      .map(o => o.id);
+    if (ids.length === 0) return;
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .in('id', ids);
+    if (error) console.error('Error deleting all orders:', error);
+    else fetchData();
+  }
   // Add Nachtrag
   async function handleAddOrder() {
     if (!newOrder.week_menu_id) return;
@@ -216,6 +239,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
           ))}
           {Object.keys(summary).length === 0 && <li>Keine Bestellungen für diesen Tag.</li>}
         </ul>
+        <button onClick={handleDeleteAll} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-full text-xs">Alle löschen</button>
       </div>
 
       {/* Orders Table */}
@@ -243,22 +267,11 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.description}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.caterer_id ? CATERER_OPTIONS[o.caterer_id] || '' : ''}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">
-                    {o.first_name === 'freigegeben' ? (
-                      <button
-                        onClick={() => handleUndo(o.id)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded-full text-xs"
-                      >
-                        Undo
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleRelease(o.id)}
-                        className="bg-orange-600 hover:bg-orange-700 text-white px-2 py-1 rounded-full text-xs"
-                      >
-                        Freigeben
-                      </button>
-                    )}
-                  </td>
+                    {o.first_name === 'freigegeben'       ?<button onClick={()=>handleUndo(o.id)} className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs">Undo</button>
+                      :<button onClick={()=>handleRelease(o.id)} className="bg-orange-600 text-white px-2 py-1 rounded-full text-xs">Freigeben</button>}
+                    <button onClick={()=>handleDelete(o.id)} className="bg-red-600 text-white px-2 py-1 rounded-full text-xs">Löschen</button>
+                      
+                   </td>
                 </tr>
               ))}
               {filteredOrders.length === 0 && (
