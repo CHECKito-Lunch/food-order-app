@@ -561,7 +561,7 @@ export default function Dashboard() {
 
       {/* LEGENDE */}
     
-      <div className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-1 md:flex-row md:items-center md:justify-between p-4 md:p-4">
+      <div className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 md:p-4">
         <h1 className="text-xl md:text-xl font-bold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-1 leading-tight flex items-center gap-2">
             Legende
           </h1>
@@ -586,7 +586,7 @@ export default function Dashboard() {
           const tagDatum = dayjs().year(selectedYear).week(selectedWeek).day(day);
 
           return (
-            <div id={`day-${day}`} key={day} className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-4 md:p-4">
+            <div id={`day-${day}`} key={day} className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 md:p-4">
               <div className="text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-3 flex flex-wrap items-center gap-3">
                 {dayName}
                 <span className="text-xs md:text-base text-gray-500 dark:text-gray-400 font-normal">
