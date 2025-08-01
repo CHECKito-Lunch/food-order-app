@@ -160,9 +160,8 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
       </div>
 
       {/* Nachtrag Formular */}
-      <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-4 mb-6">
-        <legend className="px-2 text-xs font-semibold text-[#0056b3] dark:text-blue-300">Wochen-Optionen</legend>
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+      <div className="border border-blue-200 border rounded-xl p-4 mb-6 bg-white dark:bg-gray-900">
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
           <input
             type="text"
             placeholder="Vorname"
@@ -196,9 +195,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
             className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs"
           >Hinzufügen</button>
         </div>
-        </fieldset>
       </div>
-      
 
       {/* Wochen Options */}
       <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-4 mb-6">
