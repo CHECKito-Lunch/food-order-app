@@ -281,9 +281,9 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.menu_number}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.description}</td>
                   <td className="p-2 border-t border-blue-100 dark:border-gray-700">{o.caterer_id ? CATERER_OPTIONS[o.caterer_id] || '' : ''}</td>
-                  <td className="p-2 border-t border-blue-100 dark:border-gray-700">
+                  <td className="p-2 border-t border-blue-100 dark:border-gray-700 flex space-x-2">
                     {o.first_name === 'freigegeben'       ?<button onClick={()=>handleUndo(o.id)} className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs">Undo</button>
-                      :<button onClick={()=>handleRelease(o.id)} className="bg-orange-600 text-white px-2 py-1 rounded-full text-xs">Freigeben</button>}
+                      :<button onClick={()=>handleRelease(o.id)} className="bg-green-600 text-white px-2 py-1 rounded-full text-xs">Freigeben</button>}
                     <button onClick={()=>handleDelete(o.id)} className="bg-red-600 text-white px-2 py-1 rounded-full text-xs">Löschen</button>
                       
                    </td>
