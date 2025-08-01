@@ -310,7 +310,7 @@ export default function Dashboard() {
   const weekOptions = Array.from({ length: 53 }, (_, i) => i + 1);
 
   return (
-    <div className="max-w-3xl mx-auto px-3 py-6 md:px-6 md:py-12 space-y-10 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
+    <div className="max-w-3xl mx-auto px-3 py-4 md:px-6 md:py-12 space-y-4 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
 
            {/* Roter, weicher Banner mit Close- und Scroll-Button */}
 {showBanner && deadlineReminders.length > 0 && (() => {
@@ -387,9 +387,9 @@ export default function Dashboard() {
       <Snackbar show={showSnackbar} summary={snackbarSummary} />
 
       {/* Header */}
-      <div className="rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-4 md:p-6">
+      <div className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-4 md:p-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-1 leading-tight flex items-center gap-2">
+          <h1 className="text-xl md:text-xl font-bold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-1 leading-tight flex items-center gap-2">
             <User className="w-8 h-8" /> CHECKito Lunch
           </h1>
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center text-sm text-gray-700 dark:text-gray-200">
@@ -444,13 +444,13 @@ export default function Dashboard() {
       </div>
 
       {/* Profilbereich AUSKLAPPBAR */}
-      <div className="border border-blue-100 dark:border-gray-700 rounded-2xl shadow bg-white dark:bg-gray-800 p-4 md:p-6">
+      <div className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-4 md:p-4">
         <button
-          className="flex items-center w-full justify-between text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-4 focus:outline-none"
+          className="flex items-center w-full justify-between text-xl md:text-xl leading-tight font-bold text-[#0056b3] dark:text-blue-200 mb-4 focus:outline-none"
           onClick={() => setProfileOpen(v => !v)}
         >
-          <span className="flex items-center gap-2"><User className="w-6 h-6" /> Mein Profil</span>
-          {profileOpen ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+          <span className="flex items-center gap-2"><User className="w-8 h-8" /> Mein Profil</span>
+          {profileOpen ? <ChevronUp className="w-8 h-8" /> : <ChevronDown className="w-8 h-8" />}
         </button>
         {profileOpen && !editingProfile && (
           <div className="space-y-3 animate-fade-in">
@@ -561,7 +561,11 @@ export default function Dashboard() {
       </div>
 
       {/* LEGENDE */}
-      <div className="flex items-center gap-5 mb-2 text-sm">
+    
+      <div className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-1 md:flex-row md:items-center md:justify-between p-4 md:p-4">
+        <h1 className="text-xl md:text-xl font-bold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-1 leading-tight flex items-center gap-2">
+            Legende
+          </h1>
         <span className="flex items-center gap-1">
           <span role="img" aria-label="Vegetarisch" className="text-lg">🥦</span>
           Vegetarisch
@@ -583,7 +587,7 @@ export default function Dashboard() {
           const tagDatum = dayjs().year(selectedYear).week(selectedWeek).day(day);
 
           return (
-            <div id={`day-${day}`} key={day} className="border border-blue-100 dark:border-gray-700 rounded-2xl shadow bg-white dark:bg-gray-800 p-4 md:p-6">
+            <div id={`day-${day}`} key={day} className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-4 md:p-4">
               <div className="text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-3 flex flex-wrap items-center gap-3">
                 {dayName}
                 <span className="text-xs md:text-base text-gray-500 dark:text-gray-400 font-normal">

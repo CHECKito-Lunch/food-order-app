@@ -147,7 +147,7 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
       .update({
         backup_first_name: order.first_name,
         backup_last_name: order.last_name,
-        first_name: 'freigegeben',
+        first_name: 'Freigabeessen',
         last_name: ''
       })
       .eq('id', orderId);

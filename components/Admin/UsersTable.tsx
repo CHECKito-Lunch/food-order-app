@@ -131,9 +131,9 @@ export default function UsersTable() {
     Userverwaltung
   </span>
   <button
-    className="bg-[#0056b3] hover:bg-blue-800 text-white font-semibold px-2 py-1 rounded-xl shadow text-xs"
+    className="bg-[#0056b3] hover:bg-blue-800 text-white font-semibold px-3 py-1.5 rounded-xl shadow text-xs"
   >
-    neuen User anlegen (nur Mailadresse und Passwort, den Rest freilassen)
+    neuer User
   </button>
 </h2>
        <div className="flex flex-col rounded-xl space-y-2 mb-3">
