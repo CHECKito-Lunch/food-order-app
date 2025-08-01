@@ -455,10 +455,9 @@ export default function Dashboard() {
         {profileOpen && !editingProfile && (
           <div className="space-y-3 animate-fade-in">
             <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
-              <div className="mb-1"><span className="font-semibold">Vorname:</span> <span>{profile?.first_name}</span></div>
+              <div className="mb"><span className="font-semibold">Vorname:</span> <span>{profile?.first_name}</span></div>
               <div><span className="font-semibold">Nachname:</span> <span>{profile?.last_name}</span></div>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:gap-10 text-sm">
+          
               <div><span className="font-semibold">Standort:</span> <span>{profile?.location}</span></div>
             </div>
             <button
