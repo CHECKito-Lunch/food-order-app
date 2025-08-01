@@ -108,39 +108,94 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
   return isoWeekStart;
 }
   // Export CSV
-  function exportCSV() { /* unchanged */ }
-  async function handlePdfExport() { /* unchanged */ }
-  async function handleRelease(orderId: number) { /* unchanged */ }
-  async function handleUndo(orderId: number) { /* unchanged */ }
-
-// Delete single order
-  async function handleDelete(orderId: number) {
-    const confirmDel = window.confirm('Soll diese Bestellung wirklich gelöscht werden?');
-    if (!confirmDel) return;
-    const { error } = await supabase.from('orders').delete().eq('id', orderId);
-    if (error) console.error('Error deleting order:', error);
-    else fetchData();
+  function exportCSV() {
+    const header = ["Vorname","Nachname","Standort","KW","Tag","Nr.","Gericht","Caterer"];
+    const rows = orders.map(o => [
+      o.first_name, o.last_name, o.location, o.iso_week,
+      typeof o.day_of_week === 'number' ? WEEKDAYS[o.day_of_week] : WEEKDAYS[Number(o.day_of_week)],
+      o.menu_number, o.description,
+      o.caterer_id ? CATERER_OPTIONS[o.caterer_id] : ''
+    ]);
+    const csv = [header, ...rows].map(r => r.join(';')).join('\n');
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `Bestellungen_KW${isoWeek}_${isoYear}.csv`;
+    a.click(); URL.revokeObjectURL(url);
   }
 
-  // Delete all for selected day
-  async function handleDeleteAll() {
-    const confirmDel = window.confirm(`Alle Bestellungen für ${WEEKDAYS[selectedDay]} wirklich löschen?`);
-    if (!confirmDel) return;
-    const ids = orders.filter(o => Number(o.day_of_week) === selectedDay).map(o => o.id);
-    if (ids.length === 0) return;
-    const { error } = await supabase.from('orders').delete().in('id', ids);
-    if (error) console.error('Error deleting all orders:', error);
-    else fetchData();
+  // Export PDF
+  async function handlePdfExport() {
+    setLoadingPdf(true);
+    try {
+      const res = await fetch(`/api/export-orders?isoWeek=${isoWeek}&isoYear=${isoYear}&day=${selectedDay}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url;
+      a.download = `PDF_KW${isoWeek}_${isoYear}_Tag${selectedDay}.zip`;
+      a.click(); URL.revokeObjectURL(url);
+    } catch (e) { console.error(e); }
+    setLoadingPdf(false);
   }
-  // Add Nachtrag
-  async function handleAddOrder() {
-    if (!newOrder.week_menu_id) return;
+
+  // Release (krank) mit Backup
+  async function handleRelease(orderId: number) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
     const { error } = await supabase
       .from('orders')
-      .insert([{ ...newOrder }]);
-    if (error) { console.error('Error adding order:', error); return; }
-    setNewOrder({ first_name: '', last_name: '', location: LOCATIONS[0], week_menu_id: weekMenuOptions[0]?.id || 0 });
-    fetchData();
+      .update({
+        backup_first_name: order.first_name,
+        backup_last_name: order.last_name,
+        first_name: 'freigegeben',
+        last_name: ''
+      })
+      .eq('id', orderId);
+    if (error) console.error(error);
+    else fetchData();
+  }
+
+  // Undo Release
+  async function handleUndo(orderId: number) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        first_name: order.backup_first_name || '',
+        last_name: order.backup_last_name || '',
+        backup_first_name: null,
+        backup_last_name: null
+      })
+      .eq('id', orderId);
+    if (error) console.error(error);
+    else fetchData();
+  }
+
+  // Delete single order
+  async function handleDelete(orderId: number) {
+    if (!window.confirm('Wirklich löschen?')) return;
+    const { error } = await supabase.from('orders').delete().eq('id', orderId);
+    if (error) console.error(error);
+    else fetchData();
+  }
+
+  // Delete all for day
+  async function handleDeleteAll() {
+    if (!window.confirm(`Alle Bestellungen für ${WEEKDAYS[selectedDay]} löschen?`)) return;
+    const ids = orders.filter(o => Number(o.day_of_week) === selectedDay).map(o => o.id);
+    if (!ids.length) return;
+    const { error } = await supabase.from('orders').delete().in('id', ids);
+    if (error) console.error(error);
+    else fetchData();
+  }
+
+  // Nachtrag einfügen
+  async function handleAddOrder() {
+    if (!newOrder.week_menu_id) return;
+    const { error } = await supabase.from('orders').insert([newOrder]);
+    if (error) console.error(error);
+    else { setNewOrder({ first_name: '', last_name: '', location: LOCATIONS[0], week_menu_id: weekMenuOptions[0]?.id || 0 }); fetchData(); }
   }
 
   // Filter orders
