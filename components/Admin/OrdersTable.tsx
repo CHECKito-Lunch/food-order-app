@@ -161,7 +161,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
 
       {/* Nachtrag Formular */}
       <div className="border border-blue-200 border rounded-xl p-4 mb-6 bg-white dark:bg-gray-900">
-        <h3 className="text-[#0056b3] font-semibold mb-2">Bestellung nachtragen für {WEEKDAYS[selectedDay]}</h3>
+        <legend className="px-2 text-xs font-semibold text-[#0056b3] dark:text-blue-300">Bestellverwaltung</legend>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
           <input
             type="text"
