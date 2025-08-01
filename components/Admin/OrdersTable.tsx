@@ -100,24 +100,20 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
 
 // Delete single order
   async function handleDelete(orderId: number) {
-    const { error } = await supabase
-      .from('orders')
-      .delete()
-      .eq('id', orderId);
+    const confirmDel = window.confirm('Soll diese Bestellung wirklich gelöscht werden?');
+    if (!confirmDel) return;
+    const { error } = await supabase.from('orders').delete().eq('id', orderId);
     if (error) console.error('Error deleting order:', error);
     else fetchData();
   }
 
   // Delete all for selected day
   async function handleDeleteAll() {
-    const ids = orders
-      .filter(o => Number(o.day_of_week) === selectedDay)
-      .map(o => o.id);
+    const confirmDel = window.confirm(`Alle Bestellungen für ${WEEKDAYS[selectedDay]} wirklich löschen?`);
+    if (!confirmDel) return;
+    const ids = orders.filter(o => Number(o.day_of_week) === selectedDay).map(o => o.id);
     if (ids.length === 0) return;
-    const { error } = await supabase
-      .from('orders')
-      .delete()
-      .in('id', ids);
+    const { error } = await supabase.from('orders').delete().in('id', ids);
     if (error) console.error('Error deleting all orders:', error);
     else fetchData();
   }
@@ -202,9 +198,9 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
         </div>
       </div>
 
-      {/* Export Options */}
+      {/* Wochen Options */}
       <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-4 mb-6">
-        <legend className="px-2 text-xs font-semibold text-[#0056b3] dark:text-blue-300">Export-Optionen</legend>
+        <legend className="px-2 text-xs font-semibold text-[#0056b3] dark:text-blue-300">Wochen-Optionen</legend>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-2">
             <label htmlFor="daySelect" className="text-sm font-medium text-gray-700 dark:text-gray-300">Wochentag:</label>
@@ -226,6 +222,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
               disabled={loadingPdf}
               className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs"
             >{loadingPdf ? 'Lädt…' : 'Export - Aushänge'}</button>
+            <button onClick={handleDeleteAll} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs">Alle löschen</button>
           </div>
         </div>
       </fieldset>
@@ -239,7 +236,7 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
           ))}
           {Object.keys(summary).length === 0 && <li>Keine Bestellungen für diesen Tag.</li>}
         </ul>
-        <button onClick={handleDeleteAll} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-full text-xs">Alle löschen</button>
+        
       </div>
 
       {/* Orders Table */}
