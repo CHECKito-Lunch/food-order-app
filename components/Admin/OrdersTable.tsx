@@ -190,14 +190,19 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
     else fetchData();
   }
 
-    // Nachtrag
+    // Nachtrag einfügen
   async function handleAddOrder() {
     console.log('handleAddOrder called with:', newOrder);
-    if (!newOrder.week_menu_id) {
-      console.warn('handleAddOrder aborted: week_menu_id is missing');
+    let orderToInsert = { ...newOrder };
+    if (!orderToInsert.week_menu_id && weekMenuOptions.length) {
+      orderToInsert.week_menu_id = weekMenuOptions[0].id;
+      console.warn('week_menu_id fehlte, auf erstes Menü gesetzt:', orderToInsert.week_menu_id);
+    }
+    if (!orderToInsert.week_menu_id) {
+      console.error('handleAddOrder aborted: kein gültiges week_menu_id');
       return;
     }
-    const { data, error } = await supabase.from('orders').insert([newOrder]);
+    const { data, error } = await supabase.from('orders').insert([orderToInsert]);
     if (error) {
       console.error('Error adding order in handleAddOrder:', error);
     } else {
@@ -206,6 +211,7 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
       fetchData();
     }
   }
+
   
 
   // Filter orders
