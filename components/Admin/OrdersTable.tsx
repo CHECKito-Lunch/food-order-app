@@ -234,12 +234,12 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
       <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-4 mb-6 bg-white dark:bg-gray-900">
         <legend className="px-2 text-xs font-semibold text-[#0056b3] dark:text-blue-300">Bestellung nachtragen für {selectedDate.toLocaleDateString('de-DE')}</legend>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-          <input type="text" placeholder="Vorname" value={newOrder.first_name} onChange={e=>setNewOrder(n=>({...n,first_name:e.target.value}))} className="border px-2 py-1 rounded text-sm"/>
-          <input type="text" placeholder="Nachname" value={newOrder.last_name} onChange={e=>setNewOrder(n=>({...n,last_name:e.target.value}))} className="border px-2 py-1 rounded text-sm"/>
-          <select value={newOrder.location} onChange={e=>setNewOrder(n=>({...n,location:e.target.value}))} className="border px-2 py-1 rounded text-sm">
+          <input type="text" placeholder="Vorname" value={newOrder.first_name} onChange={e=>setNewOrder(n=>({...n,first_name:e.target.value}))} className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"/>
+          <input type="text" placeholder="Nachname" value={newOrder.last_name} onChange={e=>setNewOrder(n=>({...n,last_name:e.target.value}))} className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"/>
+          <select value={newOrder.location} onChange={e=>setNewOrder(n=>({...n,location:e.target.value}))} className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500">
             {LOCATIONS.map(l=> <option key={l} value={l}>{l}</option>)}
           </select>
-          <select value={newOrder.week_menu_id} onChange={e=>setNewOrder(n=>({...n,week_menu_id:Number(e.target.value)}))} className="border px-2 py-1 rounded text-sm">
+          <select value={newOrder.week_menu_id} onChange={e=>setNewOrder(n=>({...n,week_menu_id:Number(e.target.value)}))} className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500">
             {weekMenuOptions.map(opt=> <option key={opt.id} value={opt.id}>{opt.menu_number}</option>)}
           </select>
           <button onClick={handleAddOrder} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full text-xs">Hinzufügen</button>
