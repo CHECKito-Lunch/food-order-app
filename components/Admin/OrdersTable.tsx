@@ -195,7 +195,7 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
     if (!newOrder.week_menu_id) return;
     const { error } = await supabase.from('orders').insert([newOrder]);
     if (error) console.error(error);
-    else { setNewOrder({ first_name: '', last_name: '', location: LOCATIONS[0], week_menu_id: weekMenuOptions[0]?.id || 0 }); fetchData(); }
+    else { setNewOrder({ first_name:'', last_name:'', location:LOCATIONS[0], week_menu_id:weekMenuOptions[0]?.id||0 }); fetchData(); }
   }
 
   // Filter orders
