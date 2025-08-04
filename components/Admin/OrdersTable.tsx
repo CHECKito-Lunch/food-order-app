@@ -234,40 +234,15 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
       <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-4 mb-6 bg-white dark:bg-gray-900">
         <legend className="px-2 text-xs font-semibold text-[#0056b3] dark:text-blue-300">Bestellung nachtragen für {selectedDate.toLocaleDateString('de-DE')}</legend>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-          <input
-            type="text"
-            placeholder="Vorname"
-            value={newOrder.first_name}
-            onChange={e => setNewOrder(n => ({ ...n, first_name: e.target.value }))}
-            className="border border-blue-200 px-2 py-1 dark:border-gray-700 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <input
-            type="text"
-            placeholder="Nachname"
-            value={newOrder.last_name}
-            onChange={e => setNewOrder(n => ({ ...n, last_name: e.target.value }))}
-            className="border border-blue-200 px-2 py-1 dark:border-gray-700 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <select
-            value={newOrder.location}
-            onChange={e => setNewOrder(n => ({ ...n, location: e.target.value }))}
-            className="border border-blue-200 px-2 py-1 dark:border-gray-700 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            {LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+          <input type="text" placeholder="Vorname" value={newOrder.first_name} onChange={e=>setNewOrder(n=>({...n,first_name:e.target.value}))} className="border px-2 py-1 rounded text-sm"/>
+          <input type="text" placeholder="Nachname" value={newOrder.last_name} onChange={e=>setNewOrder(n=>({...n,last_name:e.target.value}))} className="border px-2 py-1 rounded text-sm"/>
+          <select value={newOrder.location} onChange={e=>setNewOrder(n=>({...n,location:e.target.value}))} className="border px-2 py-1 rounded text-sm">
+            {LOCATIONS.map(l=> <option key={l} value={l}>{l}</option>)}
           </select>
-          <select
-            value={newOrder.week_menu_id}
-            onChange={e => setNewOrder(n => ({ ...n, week_menu_id: Number(e.target.value) }))}
-            className="border border-blue-200 px-2 py-1 dark:border-gray-700 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            {weekMenuOptions.map(opt => <option key={opt.id} value={opt.id}>{opt.menu_number}</option>)}
+          <select value={newOrder.week_menu_id} onChange={e=>setNewOrder(n=>({...n,week_menu_id:Number(e.target.value)}))} className="border px-2 py-1 rounded text-sm">
+            {weekMenuOptions.map(opt=> <option key={opt.id} value={opt.id}>{opt.menu_number}</option>)}
           </select>
-          <button
-            onClick={handleAddOrder}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs"
-          >
-            Hinzufügen
-          </button>
+          <button onClick={handleAddOrder} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full text-xs">Hinzufügen</button>
         </div>
       </fieldset>
 
