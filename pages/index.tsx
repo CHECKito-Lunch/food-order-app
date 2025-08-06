@@ -575,117 +575,137 @@ export default function Dashboard() {
         </span>
       </div>
 
-      {/* Menü + Bestellungen */}
-      <div className="space-y-6">
-        {WEEKDAYS.map((dayName, idx) => {
-          const day = idx + 1;
-          const menusOfDay = menus
-            .filter(m => m.day_of_week === day)
-            .sort((a, b) => (a.menu_number ?? 0) - (b.menu_number ?? 0));
-          const selectedOrder = getOrderForDay(day);
-          const tagDatum = dayjs().year(selectedYear).week(selectedWeek).day(day);
+{/* Menü + Bestellungen */}
+<div className="space-y-6">
+  {WEEKDAYS.map((dayName, idx) => {
+    const day = idx + 1;
+    const menusOfDay = menus
+      .filter(m => m.day_of_week === day)
+      .sort((a, b) => (a.menu_number ?? 0) - (b.menu_number ?? 0));
+    const selectedOrder = getOrderForDay(day);
+    const tagDatum = dayjs().year(selectedYear).week(selectedWeek).day(day);
 
-          return (
-            <div id={`day-${day}`} key={day} className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 md:p-4">
-              <div className="text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-3 flex flex-wrap items-center gap-3">
-                {dayName}
-                <span className="text-xs md:text-base text-gray-500 dark:text-gray-400 font-normal">
-                  ({tagDatum.format("DD.MM.YYYY")})
-                </span>
-              </div>
-              {menusOfDay.length === 0 && (
-                <div className="text-gray-400 dark:text-gray-500 mb-2">Kein Menü eingetragen.</div>
-              )}
-              <div className="flex flex-col gap-3">
-                {menusOfDay.map(m => {
-                  const isDeadline = dayjs(m.order_deadline).isBefore(dayjs());
-                  const checked = selectedOrder?.week_menu_id === m.id;
-                  return (
-                    <label
-                      key={m.id}
+    // Das bestellte Menü (falls vorhanden) für diesen Tag ermitteln:
+    const orderedMenu = selectedOrder
+      ? menusOfDay.find(m => m.id === selectedOrder.week_menu_id)
+      : null;
+    const isOrderDeadline = orderedMenu
+      ? dayjs(orderedMenu.order_deadline).isBefore(dayjs())
+      : false;
+
+    return (
+      <div id={`day-${day}`} key={day} className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 md:p-4">
+        <div className="text-xl md:text-2xl font-bold text-[#0056b3] dark:text-blue-200 mb-3 flex flex-wrap items-center gap-3">
+          {dayName}
+          <span className="text-xs md:text-base text-gray-500 dark:text-gray-400 font-normal">
+            ({tagDatum.format("DD.MM.YYYY")})
+          </span>
+        </div>
+        {menusOfDay.length === 0 && (
+          <div className="text-gray-400 dark:text-gray-500 mb-2">Kein Menü eingetragen.</div>
+        )}
+        <div className="flex flex-col gap-3">
+          {menusOfDay.map(m => {
+            const isDeadline = dayjs(m.order_deadline).isBefore(dayjs());
+            const checked = selectedOrder?.week_menu_id === m.id;
+            return (
+              <label
+                key={m.id}
+                className={`
+                  flex items-center gap-3 cursor-pointer rounded-lg px-2 py-2 transition leading-relaxed text-sm
+                  ${isDeadline ? 'opacity-70' : 'hover:bg-blue-50 dark:hover:bg-gray-700'}
+                `}
+              >
+                <span
+                  className={`
+                    relative flex items-center justify-center
+                    w-5 h-5 min-w-[1.25rem] min-h-[1.25rem]
+                    rounded-full border-2
+                    ${checked
+                      ? isDeadline
+                        ? 'border-red-600'
+                        : 'border-[#0056b3]'
+                      : isDeadline
+                        ? 'border-red-300'
+                        : 'border-gray-300'
+                    }
+                    bg-white transition
+                  `}
+                >
+                  <input
+                    type="radio"
+                    name={`order-day-${day}`}
+                    checked={checked}
+                    disabled={isDeadline}
+                    onChange={() => handleOrder(m)}
+                    className="absolute opacity-0 w-full h-full m-0 cursor-pointer"
+                    tabIndex={isDeadline ? -1 : 0}
+                  />
+                  {checked && (
+                    <span
                       className={`
-                        flex items-center gap-3 cursor-pointer rounded-lg px-2 py-2 transition leading-relaxed text-sm
-                        ${isDeadline ? 'opacity-70' : 'hover:bg-blue-50 dark:hover:bg-gray-700'}
+                        pointer-events-none
+                        absolute top-1/2 left-1/2
+                        w-2.5 h-2.5
+                        -translate-x-1/2 -translate-y-1/2
+                        rounded-full
+                        ${isDeadline ? 'bg-red-600' : 'bg-[#0056b3]'}
                       `}
-                    >
-                      <span
-                        className={`
-                          relative flex items-center justify-center
-                          w-5 h-5 min-w-[1.25rem] min-h-[1.25rem]
-                          rounded-full border-2
-                          ${checked
-                            ? isDeadline
-                              ? 'border-red-600'
-                              : 'border-[#0056b3]'
-                            : isDeadline
-                              ? 'border-red-300'
-                              : 'border-gray-300'
-                          }
-                          bg-white transition
-                        `}
-                      >
-                        <input
-                          type="radio"
-                          name={`order-day-${day}`}
-                          checked={checked}
-                          disabled={isDeadline}
-                          onChange={() => handleOrder(m)}
-                          className="absolute opacity-0 w-full h-full m-0 cursor-pointer"
-                          tabIndex={isDeadline ? -1 : 0}
-                        />
-                        {checked && (
-                          <span
-                            className={`
-                              pointer-events-none
-                              absolute top-1/2 left-1/2
-                              w-2.5 h-2.5
-                              -translate-x-1/2 -translate-y-1/2
-                              rounded-full
-                              ${isDeadline ? 'bg-red-600' : 'bg-[#0056b3]'}
-                            `}
-                          />
-                        )}
-                      </span>
-                      <span>
-                        <span className="font-semibold">Nr:</span> {m.menu_number} – 
-                        <span className="font-medium">
-                          {m.description}
-                          {m.is_veggie && (
-                            <span title="Vegetarisch" className="ml-1" role="img" aria-label="Vegetarisch">🥦</span>
-                          )}
-                          {m.is_vegan && (
-                            <span title="Vegan" className="ml-1" role="img" aria-label="Vegan">🌱</span>
-                          )}
-                        </span>
-                        <br />
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          Deadline: {dayjs.utc(m.order_deadline).tz('Europe/Berlin').format('DD.MM.YYYY HH:mm')}
-                          {isDeadline && (
-                            <b className="text-red-600 font-bold ml-1">(abgelaufen)</b>
-                          )}
-                        </span>
-                      </span>
-                    </label>
-                  );
-                })}
-                {selectedOrder && (
-                  <button
-                    className="mt-1 px-5 py-1.5 bg-red-600 dark:bg-red-700 text-white rounded-full text-sm font-semibold hover:bg-red-700 dark:hover:bg-red-800 shadow transition w-full sm:w-auto"
-                    onClick={async () => {
-                      await supabase.from('orders').delete().eq('id', selectedOrder.id);
-                      const { data: orderData } = await supabase
-                        .from('orders')
-                        .select('id, week_menu_id')
-                        .eq('user_id', user.id);
-                      setOrders(orderData ?? []);
-                    }}
-                  >Bestellung stornieren</button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+                    />
+                  )}
+                </span>
+                <span>
+                  <span className="font-semibold">Nr:</span> {m.menu_number} – 
+                  <span className="font-medium">
+                    {m.description}
+                    {m.is_veggie && (
+                      <span title="Vegetarisch" className="ml-1" role="img" aria-label="Vegetarisch">🥦</span>
+                    )}
+                    {m.is_vegan && (
+                      <span title="Vegan" className="ml-1" role="img" aria-label="Vegan">🌱</span>
+                    )}
+                  </span>
+                  <br />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Deadline: {dayjs.utc(m.order_deadline).tz('Europe/Berlin').format('DD.MM.YYYY HH:mm')}
+                    {isDeadline && (
+                      <b className="text-red-600 font-bold ml-1">(abgelaufen)</b>
+                    )}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+          {selectedOrder && (
+            <button
+          
+              className={`
+                mt-1 px-5 py-1.5 rounded-full text-sm font-semibold shadow transition w-full sm:w-auto
+                ${isOrderDeadline
+                  ? 'bg-gray-300 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                  : 'bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800'
+                }
+              `}
+              onClick={async () => {
+                if (isOrderDeadline) return;
+                await supabase.from('orders').delete().eq('id', selectedOrder.id);
+                const { data: orderData } = await supabase
+                  .from('orders')
+                  .select('id, week_menu_id')
+                  .eq('user_id', user.id);
+                setOrders(orderData ?? []);
+              }}
+              disabled={isOrderDeadline}
+              
+            >
+              Bestellung stornieren
+            </button>
+          )}
+        </div>
       </div>
+    );
+  })}
+</div>
     </div>
   );
 }
