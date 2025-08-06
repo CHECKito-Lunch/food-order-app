@@ -132,6 +132,7 @@ export default function UsersTable() {
   </span>
   <button
     className="bg-[#0056b3] hover:bg-blue-800 text-white font-semibold px-3 py-1.5 rounded-xl shadow text-xs"
+    onClick={() => setShowCreate(true)}
   >
     neuer User
   </button>

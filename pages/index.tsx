@@ -5,6 +5,9 @@ import Login from './login';
 import { useRouter } from 'next/router';
 import { LogOut, Shield, User, ChevronDown, ChevronUp, Edit, KeyRound } from 'lucide-react';
 import { FiCheckCircle } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+
+
 
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
 
@@ -136,6 +139,8 @@ export default function Dashboard() {
     })();
   }, [user, selectedYear, selectedWeek]);
 
+
+  
   // Banner automatisch schließen, wenn keine Reminders
   useEffect(() => {
     if (deadlineReminders.length === 0) {
@@ -386,6 +391,8 @@ export default function Dashboard() {
       )}
       <Snackbar show={showSnackbar} summary={snackbarSummary} />
 
+
+
       {/* Header */}
       <div className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-4 md:p-4">
         <div>
@@ -442,6 +449,8 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+
 
       {/* Profilbereich AUSKLAPPBAR */}
       <div className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-4 md:p-4">
@@ -558,6 +567,66 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Mini-Übersicht: Bestellungen/Woche */}
+<div className="rounded-2xl shadow-md border border-blue-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 md:p-4">
+        <h1 className="text-xl md:text-xl font-bold text-[#0056b3] dark:text-blue-200 mb-2 md:mb-1 leading-tight flex items-center gap-2">
+            Deine Wochenübersicht
+          </h1>
+<div className="overflow-x-auto mb-6">
+  <div className="flex gap-3 py-2 min-w-[350px] md:min-w-0 justify-center">
+    {WEEKDAYS.map((dayName, idx) => {
+      const day = idx + 1;
+      const menusOfDay = menus
+        .filter(m => m.day_of_week === day)
+        .sort((a, b) => (a.menu_number ?? 0) - (b.menu_number ?? 0));
+      const selectedOrder = getOrderForDay(day);
+      const tagDatum = dayjs().year(selectedYear).week(selectedWeek).day(day);
+      let badgeColor = selectedOrder ? 'bg-green-600 border-green-700 text-white' : 'bg-red-500 border-red-700 text-white';
+      let icon = selectedOrder
+        ? <span className="text-lg ml-1 align-middle">✔️</span>
+        : <span className="text-lg ml-1 align-middle">❌</span>;
+
+      // Menü-Info für Tooltip/Icon, falls bestellt
+      let menuIcons = null;
+      let menuDesc = '';
+      if (selectedOrder) {
+        const orderedMenu = menusOfDay.find(m => m.id === selectedOrder.week_menu_id);
+        if (orderedMenu) {
+          menuIcons = (
+            <>
+              {orderedMenu.is_veggie && <span title="Vegetarisch" className="ml-1" role="img" aria-label="Vegetarisch">🥦</span>}
+              {orderedMenu.is_vegan && <span title="Vegan" className="ml-1" role="img" aria-label="Vegan">🌱</span>}
+            </>
+          );
+          menuDesc = orderedMenu.description;
+        }
+      }
+
+      return (
+        <button
+          key={day}
+          type="button"
+          onClick={() => document.getElementById(`day-${day}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          className={`
+            flex flex-col items-center justify-center
+            ${badgeColor} border-2 rounded-2xl shadow font-semibold
+            min-w-[70px] max-w-[80px] h-[68px]
+            px-2 py-1 transition hover:brightness-110 focus:outline-none
+          `}
+          title={selectedOrder && menuDesc ? `${dayName} (${tagDatum.format("DD.MM.")}): ${menuDesc}` : dayName}
+        >
+          <div className="text-xs mb-0.5">{dayName}</div>
+          <div className="flex items-center justify-center h-5">
+            {icon} {menuIcons}
+          </div>
+          <div className="text-[11px] mt-0.5">{tagDatum.format("DD.MM.")}</div>
+        </button>
+      );
+    })}
+    </div>
+  </div>
+</div>
 
       {/* LEGENDE */}
     
