@@ -45,47 +45,72 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
   const [newOrder, setNewOrder] = useState({ first_name: '', last_name: '', location: LOCATIONS[0], week_menu_id: 0 as number });
 
   // Fetch orders & menu options
-  async function fetchData() {
+ async function fetchData() {
+    console.log('Fetching menus for ISO', isoWeek, '/', isoYear);
     setLoading(true);
+
+    // 1) hole alle Menüs der Woche
+    const { data: menusForWeek, error: menusErr } = await supabase
+      .from('week_menus')
+      .select('id, menu_number, description, caterer_id, day_of_week')
+      .eq('iso_week', isoWeek)
+      .eq('iso_year', isoYear);
+    if (menusErr) {
+      console.error('Error fetching week_menus:', menusErr);
+      setWeekMenuOptions([]);
+    } else {
+      console.log('Menus fetched:', menusForWeek.length);
+      setWeekMenuOptions(menusForWeek);
+    }
+
+    // baue ID-Liste
+    const menuIds = menusForWeek?.map(m => m.id) ?? [];
+
+    // 2) hole alle Orders, die auf diese Menü-IDs verweisen
+    console.log('Fetching orders for menu IDs:', menuIds);
     const { data: ordData, error: ordErr } = await supabase
       .from('orders')
       .select(`
-        id, first_name, last_name, backup_first_name, backup_last_name, location, week_menu_id,
-        week_menus (menu_number, description, caterer_id, day_of_week, iso_week, iso_year)
+        id,
+        first_name,
+        last_name,
+        backup_first_name,
+        backup_last_name,
+        location,
+        week_menu_id,
+        week_menus (
+          day_of_week,
+          menu_number,
+          description,
+          caterer_id
+        )
       `)
-      .eq('week_menus.iso_week', isoWeek)
-      .eq('week_menus.iso_year', isoYear);
+      .in('week_menu_id', menuIds);
     if (ordErr) {
       console.error('Error fetching orders:', ordErr);
       setOrders([]);
     } else {
+      console.log('Fetched orders count:', ordData.length);
+      // mappe in unser OrderAdmin-Schema
       setOrders(
-        (ordData ?? [])
-          .filter((row: any) => row.week_menus?.menu_number)
-          .map((row: any) => ({
-            id: row.id,
-            first_name: row.first_name || "",
-            last_name: row.last_name || "",
-            backup_first_name: row.backup_first_name,
-            backup_last_name: row.backup_last_name,
-            location: row.location || "",
-            iso_week: row.week_menus.iso_week,
-            day_of_week: row.week_menus.day_of_week,
-            menu_number: row.week_menus.menu_number,
-            description: row.week_menus.description,
-            caterer_id: row.week_menus.caterer_id,
+ordData
+      .filter((o: any) => o.week_menus)
+      .map((o: any) => ({
+        id: o.id,
+        first_name: o.first_name,
+        last_name: o.last_name,
+        backup_first_name: o.backup_first_name,
+        backup_last_name: o.backup_last_name,
+        location: o.location,
+        // hier das fehlende iso_week hinzufügen:
+        iso_week: isoWeek,
+        day_of_week: o.week_menus.day_of_week,
+        menu_number: o.week_menus.menu_number,
+        description: o.week_menus.description,
+        caterer_id: o.week_menus.caterer_id,
           }))
       );
     }
-    // fetch menu options for selected day
-    const { data: menuData, error: menuErr } = await supabase
-      .from('week_menus')
-      .select('id, menu_number')
-      .eq('iso_week', isoWeek)
-      .eq('iso_year', isoYear)
-      .eq('day_of_week', selectedDay);
-    if (menuErr) console.error('Error fetching menu options:', menuErr);
-    else setWeekMenuOptions(menuData || []);
 
     setLoading(false);
   }
@@ -140,6 +165,7 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
 
   // Release (krank) mit Backup
   async function handleRelease(orderId: number) {
+        console.log('Releasing order id:', orderId);
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     const { error } = await supabase
