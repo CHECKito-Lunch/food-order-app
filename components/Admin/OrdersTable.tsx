@@ -31,6 +31,7 @@ interface OrderAdmin {
 interface WeekMenuOption {
   id: number;
   menu_number: number;
+  day_of_week: number;
 }
 
 export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; isoWeek: number }) {
@@ -50,18 +51,27 @@ export default function OrdersTable({ isoYear, isoWeek }: { isoYear: number; iso
     setLoading(true);
 
     // 1) hole alle Menüs der Woche
-    const { data: menusForWeek, error: menusErr } = await supabase
-      .from('week_menus')
-      .select('id, menu_number, description, caterer_id, day_of_week')
-      .eq('iso_week', isoWeek)
-      .eq('iso_year', isoYear);
-    if (menusErr) {
-      console.error('Error fetching week_menus:', menusErr);
-      setWeekMenuOptions([]);
-    } else {
-      console.log('Menus fetched:', menusForWeek.length);
-      setWeekMenuOptions(menusForWeek);
-    }
+const { data: menusForWeek, error: menusErr } = await supabase
+  .from('week_menus')
+  .select('id, menu_number, description, caterer_id, day_of_week')
+  .eq('iso_week', isoWeek)
+  .eq('iso_year', isoYear);
+
+if (menusErr) {
+  console.error('Error fetching week_menus:', menusErr);
+  setWeekMenuOptions([]);
+} else {
+  console.log('Menus fetched (week):', menusForWeek.length);
+
+  // ✅ nur Menüs des ausgewählten Tags ins Dropdown
+  const menusForDay = (menusForWeek ?? [])
+    .filter(m => Number(m.day_of_week) === Number(selectedDay))
+    .sort((a, b) => (a.menu_number ?? 0) - (b.menu_number ?? 0));
+
+  console.log('Menus for day', selectedDay, '=>', menusForDay.map(m => m.menu_number));
+  setWeekMenuOptions(menusForDay);
+}
+
 
     // baue ID-Liste
     const menuIds = menusForWeek?.map(m => m.id) ?? [];
@@ -217,26 +227,37 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
 
     // Nachtrag einfügen
   async function handleAddOrder() {
-    console.log('handleAddOrder called with:', newOrder);
-    let orderToInsert = { ...newOrder };
-    if (!orderToInsert.week_menu_id && weekMenuOptions.length) {
-      orderToInsert.week_menu_id = weekMenuOptions[0].id;
-      console.warn('week_menu_id fehlte, auf erstes Menü gesetzt:', orderToInsert.week_menu_id);
-    }
-    if (!orderToInsert.week_menu_id) {
-      console.error('handleAddOrder aborted: kein gültiges week_menu_id');
-      return;
-    }
-    const { data, error } = await supabase.from('orders').insert([orderToInsert]);
-    if (error) {
-      console.error('Error adding order in handleAddOrder:', error);
-    } else {
-      console.log('Order added successfully:', data);
-      setNewOrder({ first_name: '', last_name: '', location: LOCATIONS[0], week_menu_id: weekMenuOptions[0]?.id || 0 });
-      fetchData();
-    }
+  console.log('handleAddOrder called with:', newOrder);
+
+  if (!weekMenuOptions.some(o => o.id === newOrder.week_menu_id)) {
+    console.error('Abgebrochen: ausgewählte Menü-ID gehört nicht zum aktuellen Tag.');
+    return;
   }
 
+  let orderToInsert = { ...newOrder };
+  if (!orderToInsert.week_menu_id && weekMenuOptions.length) {
+    orderToInsert.week_menu_id = weekMenuOptions[0].id;
+    console.warn('week_menu_id fehlte, erstes Menü des Tages gesetzt:', orderToInsert.week_menu_id);
+  }
+  if (!orderToInsert.week_menu_id) {
+    console.error('handleAddOrder aborted: kein gültiges week_menu_id');
+    return;
+  }
+
+  const { data, error } = await supabase.from('orders').insert([orderToInsert]);
+  if (error) {
+    console.error('Error adding order in handleAddOrder:', error);
+  } else {
+    console.log('Order added successfully:', data);
+    setNewOrder({
+      first_name: '',
+      last_name: '',
+      location: LOCATIONS[0],
+      week_menu_id: weekMenuOptions[0]?.id || 0
+    });
+    fetchData();
+  }
+}
   
 
   // Filter orders
@@ -274,16 +295,41 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
      {/* Bestellung nachtragen */}
       <fieldset className="border border-blue-200 dark:border-gray-700 rounded-xl p-4 mb-6 bg-white dark:bg-gray-900">
         <legend className="px-2 text-xs font-semibold text-[#0056b3] dark:text-blue-300">Bestellung nachtragen für {selectedDate.toLocaleDateString('de-DE')}</legend>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-          <input type="text" placeholder="Vorname" value={newOrder.first_name} onChange={e=>setNewOrder(n=>({...n,first_name:e.target.value}))} className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"/>
-          <input type="text" placeholder="Nachname" value={newOrder.last_name} onChange={e=>setNewOrder(n=>({...n,last_name:e.target.value}))} className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"/>
-          <select value={newOrder.location} onChange={e=>setNewOrder(n=>({...n,location:e.target.value}))} className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500">
-            {LOCATIONS.map(l=> <option key={l} value={l}>{l}</option>)}
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+          <input
+            type="text"
+            placeholder="Vorname"
+            value={newOrder.first_name}
+            onChange={e => setNewOrder(n => ({ ...n, first_name: e.target.value }))}
+            className="border border-blue-200 px-2 py-1 dark:border-gray-700 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <input
+            type="text"
+            placeholder="Nachname"
+            value={newOrder.last_name}
+            onChange={e => setNewOrder(n => ({ ...n, last_name: e.target.value }))}
+            className="border border-blue-200 px-2 py-1 dark:border-gray-700 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <select
+            value={newOrder.location}
+            onChange={e => setNewOrder(n => ({ ...n, location: e.target.value }))}
+            className="border border-blue-200 px-2 py-1 dark:border-gray-700 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            {LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
           </select>
-          <select value={newOrder.week_menu_id} onChange={e=>setNewOrder(n=>({...n,week_menu_id:Number(e.target.value)}))} className="border border-blue-200 dark:border-gray-700 rounded px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500">
-            {weekMenuOptions.map(opt=> <option key={opt.id} value={opt.id}>{opt.menu_number}</option>)}
+          <select
+            value={newOrder.week_menu_id}
+            onChange={e => setNewOrder(n => ({ ...n, week_menu_id: Number(e.target.value) }))}
+            className="border border-blue-200 px-2 py-1 dark:border-gray-700 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            {weekMenuOptions.map(opt => <option key={opt.id} value={opt.id}>{opt.menu_number}</option>)}
           </select>
-          <button onClick={handleAddOrder} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full text-xs">Hinzufügen</button>
+          <button
+            onClick={handleAddOrder}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full shadow font-semibold transition text-xs"
+          >
+            Hinzufügen
+          </button>
         </div>
       </fieldset>
 
@@ -296,7 +342,13 @@ function getDateOfISOWeek(w: number, y: number, day: number) {
             <select
               id="daySelect"
               value={selectedDay}
-              onChange={e => setSelectedDay(Number(e.target.value))}
+              onChange={e => {
+    const d = Number(e.target.value);
+    setSelectedDay(d);
+    // Auswahl des Menüs beim Tageswechsel zurücksetzen – wird durch useEffect oben
+    // gleich auf die erste gültige Option gesetzt, sobald weekMenuOptions geladen sind.
+    setNewOrder(n => ({ ...n, week_menu_id: 0 }));
+  }}
               className="text-sm px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow"
             >
               {Object.entries(WEEKDAYS).map(([val, label]) => (

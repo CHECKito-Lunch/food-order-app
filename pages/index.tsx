@@ -574,7 +574,7 @@ export default function Dashboard() {
             Deine Wochenübersicht
           </h1>
 <div className="overflow-x-auto mb-6">
-  <div className="flex gap-3 py-2 min-w-[350px] md:min-w-0 justify-center">
+  <div className="flex gap-1 py-4 min-w-[350px] md:min-w-0 justify-center">
     {WEEKDAYS.map((dayName, idx) => {
       const day = idx + 1;
       const menusOfDay = menus
