@@ -127,6 +127,21 @@ ordData
 
   useEffect(() => { fetchData(); }, [isoYear, isoWeek, selectedDay]);
 
+// 2a) Beim Wechsel von Woche/Jahr/Tag zunächst invalidieren
+useEffect(() => {
+  setNewOrder(n => ({ ...n, week_menu_id: 0 }));
+}, [isoWeek, isoYear, selectedDay]);
+
+// 2b) Sobald neue Optionen da sind: auf erste gültige ID setzen, falls aktuelle ID nicht passt
+useEffect(() => {
+  setNewOrder(n => {
+    if (!weekMenuOptions.length) return { ...n, week_menu_id: 0 };
+    if (weekMenuOptions.some(o => o.id === n.week_menu_id)) return n;
+    return { ...n, week_menu_id: weekMenuOptions[0].id };
+  });
+}, [weekMenuOptions]);
+
+
 // Gibt das Datum für ISO-Woche `w`, ISO-Jahr `y` und Wochentag `day` (1=Mo … 7=So) zurück
 function getDateOfISOWeek(w: number, y: number, day: number) {
   // Erster Tag der ISO-Woche 1
